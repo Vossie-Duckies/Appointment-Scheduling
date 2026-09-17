@@ -2,7 +2,8 @@ import { View, TextInput, Text, StyleSheet } from "react-native";
 
 interface textInputProps {
   placeholder: string,
-  labelName: string
+  labelName: string,
+  secureText: boolean
 }
 
 const styles = StyleSheet.create({
@@ -14,7 +15,7 @@ const styles = StyleSheet.create({
   },
   textInput: {
     backgroundColor: "#ececec",
-    width: 220,
+    width: 270,
     height: 50,
     textAlign: "center",
     borderRadius: 10,
@@ -26,7 +27,7 @@ const InputField: React.FC<textInputProps> = ({ textInputData }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.text}>{textInputData.labelName}</Text>
-      <TextInput style={styles.textInput} placeholder={textInputData.placeholder} />
+      <TextInput style={styles.textInput} placeholder={textInputData.placeholder} secureTextEntry={textInputData.secureText} />
     </View>
   )
 }
