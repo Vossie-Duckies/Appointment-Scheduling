@@ -7,4 +7,6 @@ Django
 
     2. Install Django:
         pip install Django (On macOS/ Linux, you may need to use use pip3 or python3 -m pip install Django)
-    
+
+Python
+1.     
