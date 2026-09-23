@@ -31,10 +31,18 @@ class Patient(models.Models):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     date_of_birth = models.DateField()
     gender = models.CharField(max_length=20)
-    
+
 
 class Doctor(models.Models):
-    pass
+    STATUSES =(
+        ("AVAILABLE", "Available"),
+        ("UNAVAILABLE", "Unavailable"),
+        ("DELAYED", "Delayed"),
+    )
+    user_id = models.OneToOneField(User, on_delete=models.CASCADE)
+    license_no = models.CharField(max_length=50, unique=True)
+    status = models.CharField(max_length=20, choices=STATUSES, default= "AVAILABLE")
+
 
 class Administrator(models.Models):
     pass
