@@ -26,10 +26,12 @@ class User(models.Model):
     password_hash = models.CharField(max_length=128)
     role = models.CharField(max_length=10, choices=ROLES)
     account_status = models.CharField(max_length=20, choices=ACCOUNT_STATUSES, default="ACTIVE")
-    
-    
+
 class Patient(models.Models):
-    pass
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    date_of_birth = models.DateField()
+    gender = models.CharField(max_length=20)
+    
 
 class Doctor(models.Models):
     pass
