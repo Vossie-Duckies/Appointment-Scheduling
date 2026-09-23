@@ -90,7 +90,7 @@ class Appointment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS, default="BOOKED")
-    reason = models.TextField(null=True, blank=True)
+    reason = models.TextField()
 
     
 
