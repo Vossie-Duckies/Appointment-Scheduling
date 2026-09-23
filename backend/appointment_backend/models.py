@@ -73,13 +73,26 @@ class Doctor_slot(models.Models):
             # Enforces the constraint called doctor slot
             models.UniqueConstraint(
                 fields= ["doctor", "slot_date", "start_time", "end_time"],
-                name="unique_doct_slot"
+                name=" unique_doct_slot"
             ),
         ]
         
-
 class Appointment(models.Models):
-    pass
+    STATUS =(
+        ("BOOKED", "Boooked"),
+        ("CANCELLED", "Cancelled"),
+        ("COMPLETED", "Completed"),
+        ("NOSHOW", "NoShow"),
+    )
+    appointment_id = models.BigAutoField(primary_key=True)
+    patient_id = models.ForeignKey(Patient, on_delete=models.PROTECT)
+    slot_id = models.OneToOneField(Doctor_slot, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+    update_at = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS, default="BOOKED")
+    reason = models.TextField(null=True, blank=True)
+
+    
 
 class Notification(models.Models):
     pass
