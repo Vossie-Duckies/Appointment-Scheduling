@@ -27,13 +27,13 @@ class User(models.Model):
     role = models.CharField(max_length=10, choices=ROLES)
     account_status = models.CharField(max_length=20, choices=ACCOUNT_STATUSES, default="ACTIVE")
 
-class Patient(models.Models):
+class Patient(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     date_of_birth = models.DateField()
     gender = models.CharField(max_length=20)
 
 
-class Doctor(models.Models):
+class Doctor(models.Model):
     STATUSES =(
         ("AVAILABLE", "Available"),
         ("UNAVAILABLE", "Unavailable"),
@@ -44,11 +44,11 @@ class Doctor(models.Models):
     status = models.CharField(max_length=20, choices=STATUSES, default= "AVAILABLE")
 
 
-class Administrator(models.Models):
+class Administrator(models.Model):
     user_id = models.OneToOneField(User, on_delete=models.CASCADE)
     
 
-class Doctor_slot(models.Models):
+class Doctor_slot(models.Model):
     STATUSES =(
         ("AVAILABLE", "Available"),
         ("BOOKED", "Booked"),
@@ -77,7 +77,7 @@ class Doctor_slot(models.Models):
             ),
         ]
         
-class Appointment(models.Models):
+class Appointment(models.Model):
     STATUS =(
         ("BOOKED", "Boooked"),
         ("CANCELLED", "Cancelled"),
@@ -94,7 +94,7 @@ class Appointment(models.Models):
 
     
 
-class Notification(models.Models):
+class Notification(models.Model):
     notification_id = models.BigAutoField(primary_key=True)
     appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
