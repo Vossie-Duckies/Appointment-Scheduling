@@ -23,7 +23,7 @@ class User(models.Model):
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     email = models.CharField(max_length=100, unique=True)
-    password_hash = models.CharField(max_length=128)
+    password_hash = models.CharField(max_length=255)
     role = models.CharField(max_length=10, choices=ROLES)
     account_status = models.CharField(max_length=20, choices=ACCOUNT_STATUSES, default="ACTIVE")
 
@@ -39,13 +39,13 @@ class Doctor(models.Model):
         ("UNAVAILABLE", "Unavailable"),
         ("DELAYED", "Delayed"),
     )
-    user_id = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
     license_no = models.CharField(max_length=50, unique=True)
     status = models.CharField(max_length=20, choices=STATUSES, default= "AVAILABLE")
 
 
 class Administrator(models.Model):
-    user_id = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
     
 
 class Doctor_slot(models.Model):
@@ -56,11 +56,11 @@ class Doctor_slot(models.Model):
     )
     # For chekcking the time that can be verified outside the model
     slot_id = models.BigAutoField(primary_key=True)
-    doctor_id = models.ForeignKey(Doctor, on_delete=models.CASCADE)
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE)
     slot_date = models.DateField()
-    start_date = models.TimeField()
+    start_time = models.TimeField()
     end_time = models.TimeField()
-    status = models.CharField(max_length=20, choices=STATUSES)
+    status = models.CharField(max_length=20, choices=STATUSES, default="AVAILABLE")
 
     # Meta class defines the behaviour of the models 
     class Meta:
@@ -73,22 +73,22 @@ class Doctor_slot(models.Model):
             # Enforces the constraint called doctor slot
             models.UniqueConstraint(
                 fields= ["doctor", "slot_date", "start_time", "end_time"],
-                name=" unique_doct_slot"
+                name="unique_doct_slot"
             ),
         ]
         
 class Appointment(models.Model):
     STATUS =(
-        ("BOOKED", "Boooked"),
+        ("BOOKED", "Booked"),
         ("CANCELLED", "Cancelled"),
         ("COMPLETED", "Completed"),
         ("NOSHOW", "NoShow"),
     )
     appointment_id = models.BigAutoField(primary_key=True)
-    patient_id = models.ForeignKey(Patient, on_delete=models.PROTECT)
-    slot_id = models.OneToOneField(Doctor_slot, on_delete=models.PROTECT)
+    patient = models.ForeignKey(Patient, on_delete=models.PROTECT)
+    slot = models.OneToOneField(Doctor_slot, on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
-    update_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS, default="BOOKED")
     reason = models.TextField(null=True, blank=True)
 
