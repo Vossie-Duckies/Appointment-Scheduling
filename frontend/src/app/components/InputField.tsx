@@ -23,13 +23,14 @@ const styles = StyleSheet.create({
   }
 });
 
-const InputField: React.FC<textInputProps> = ({ textInputData }) => {
+const InputField: React.FC<textInputProps> = ({ placeholder, labelName, secureText }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>{textInputData.labelName}</Text>
-      <TextInput style={styles.textInput} placeholder={textInputData.placeholder} secureTextEntry={textInputData.secureText} />
+      <Text style={styles.text}>{labelName}</Text>
+      <TextInput style={styles.textInput} placeholder={placeholder} secureTextEntry={secureText} />
     </View>
   )
-}
+};
 
 export default InputField
+

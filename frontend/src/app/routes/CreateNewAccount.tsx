@@ -1,23 +1,13 @@
 import { View, Text, StyleSheet, Button, TouchableOpacity } from "react-native";
 import { Link, useRouter } from 'expo-router';
-import InputField from "../app/components/InputField";
+import InputField from "../components/InputField";
+import Heading from "../components/Heading";
 
 const styles = StyleSheet.create({
   container: {
     alignItems: "center",
     justifyContent: "center",
     gap: 25
-  },
-  heading: {
-    fontSize: 30,
-    fontWeight: 'bold',
-    width: 200,
-    textAlign: "center",
-    color: '#d00000',
-    marginTop: 20,
-    paddingBottom: 25,
-    borderBottomColor: "#cecece",
-    borderBottomWidth: 1
   },
   line: {
     flex: 3,
@@ -53,7 +43,7 @@ interface InputData {
 const SignInButton = () => {
   const router = useRouter();
   const ButtonClicked = () => {
-    router.navigate('/pages/UpcomingAppointments');
+    router.navigate('routes/UpcomingAppointments');
   };
 
   return (
@@ -84,10 +74,22 @@ export default function CreateNewAccount() {
 
   return (
     <View testID="child-item" style={styles.container}>
-      <Text accessibilityRole="header" style={styles.heading}>Create New Account</Text>
-      <InputField textInputData={nameInputData} />
-      <InputField textInputData={emailInputData} />
-      <InputField textInputData={passwordInputData} />
+      <Heading text="Create New Account" variant="primary" />
+      <InputField
+        placeholder={nameInputData.placeholder}
+        labelName={nameInputData.labelName}
+        secureText={nameInputData.secureText}
+      />
+      <InputField
+        placeholder={emailInputData.placeholder}
+        labelName={emailInputData.labelName}
+        secureText={emailInputData.secureText}
+      />
+      <InputField
+        placeholder={passwordInputData.placeholder}
+        labelName={passwordInputData.labelName}
+        secureText={passwordInputData.secureText}
+      />
       <SignInButton />
       <Text style={styles.text}>Already Registered? <Link href="/" style={styles.textUnderline}>Log in</Link></Text>
     </View >
