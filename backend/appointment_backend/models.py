@@ -45,7 +45,8 @@ class Doctor(models.Models):
 
 
 class Administrator(models.Models):
-    pass
+    user_id = models.OneToOneField(User, on_delete=models.CASCADE)
+    
 
 class Doctor_slot(models.Models):
     pass
