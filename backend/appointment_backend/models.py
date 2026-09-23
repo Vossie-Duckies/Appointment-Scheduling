@@ -49,7 +49,34 @@ class Administrator(models.Models):
     
 
 class Doctor_slot(models.Models):
-    pass
+    STATUSES =(
+        ("AVAILABLE", "Available"),
+        ("BOOKED", "Booked"),
+        ("BLOCKED","Blocked"),
+    )
+    # For chekcking the time that can be verified outside the model
+    slot_id = models.BigAutoField(primary_key=True)
+    doctor_id = models.ForeignKey(Doctor, on_delete=models.CASCADE)
+    slot_date = models.DateField()
+    start_date = models.TimeField()
+    end_time = models.TimeField()
+    status = models.CharField(max_length=20, choices=STATUSES)
+
+    # Meta class defines the behaviour of the models 
+    class Meta:
+        constraints =[
+            # Enforces the constraint called slot time
+            models.CheckConstraint(
+                condition=models.Q(end_time__gt =models.F("start_time")),
+                name = "check_slot_time"
+            ),
+            # Enforces the constraint called doctor slot
+            models.UniqueConstraint(
+                fields= ["doctor", "slot_date", "start_time", "end_time"],
+                name="unique_doct_slot"
+            ),
+        ]
+        
 
 class Appointment(models.Models):
     pass
