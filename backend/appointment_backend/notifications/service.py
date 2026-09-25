@@ -1,9 +1,23 @@
-from .strategies import NotificationStrategy
+from .strategies import (
+    InAppNotificationStrategy,
+    EmailNotificationStrategy,
+    SMSNotificationStrategy
+)
 
-class NotifcationServices:
 
-    def __init__(self, strategy: NotificationStrategy):
-        self.strategy = strategy
+class NotificationServices:
 
-    def notfiy(self, user, message):
-        self.straegy.send(user, message)
+    strategies = {
+        "IN_APP": InAppNotificationStrategy,
+        "EMAIL": EmailNotificationStrategy,
+        "SMS": SMSNotificationStrategy,
+    }
+
+    def __init__(self, notification_type):
+        self.strategy = self.strategies[notification_type]()
+
+    def notify(self, user, message):
+        self.strategy.send(user, message)
+
+    def change_strategy(self, notification_type):
+        self.strategy = self.strategies[notification_type]()
