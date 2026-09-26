@@ -38,7 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'appointment_backend'
+    'appointment_backend',
+    'accounts',
 ]
 
 MIDDLEWARE = [
@@ -131,4 +132,10 @@ MAILERS = {
         'PASSWORD': 'trihptwzqtzhuzwz',
         'USE_TLS': True,
     },
+}
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
 }
