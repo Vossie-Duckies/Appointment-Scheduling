@@ -16,8 +16,9 @@ class NotificationServices:
     def __init__(self, notification_type):
         self.strategy = self.strategies[notification_type]()
 
-    def notify(self, user, message):
-        self.strategy.send(user, message)
+    def notify(self, user, appointment, message):
+        self.strategy.send(user, appointment, message)
+
 
     def change_strategy(self, notification_type):
         self.strategy = self.strategies[notification_type]()

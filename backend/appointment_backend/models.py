@@ -22,7 +22,7 @@ class User(models.Model):
     user_id = models.BigAutoField(primary_key=True)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
-    email = models.CharField(max_length=100, unique=True)
+    email = models.EmailField(max_length=100, unique=True)
     password_hash = models.CharField(max_length=255)
     role = models.CharField(max_length=10, choices=ROLES)
     account_status = models.CharField(max_length=20, choices=ACCOUNT_STATUSES, default="ACTIVE")
