@@ -37,7 +37,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework'
+    'rest_framework',
+    'appointment_backend'
 ]
 
 MIDDLEWARE = [
@@ -124,5 +125,10 @@ STATIC_URL = 'static/'
 MAILERS = {
     'default': {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+        'HOST': 'smpt.gmail.com',
+        'PORT': 587,
+        'USERNAME': 'juniorlou55@gmail.com',
+        'PASSWORD': 'trihptwzqtzhuzwz',
+        'USE_TLS': True,
     },
 }
