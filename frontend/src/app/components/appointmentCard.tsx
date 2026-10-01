@@ -12,7 +12,8 @@ const styles = StyleSheet.create({
     height: 60,
     width: 300,
     backgroundColor: "#ececec",
-    justifyContent: "center"
+    justifyContent: "center",
+    marginVertical: 6
   },
   primary: {
     fontWeight: "bold",

@@ -1,4 +1,5 @@
 import { View, Text, TouchableOpacity, FlatList, StyleSheet } from "react-native";
+import React, { useState } from "react";
 import Heading from "@/app/components/Heading";
 
 interface DoctorCardProps {
@@ -31,15 +32,24 @@ const styles = StyleSheet.create({
   },
   body: {
     height: 320,
-    width: 250,
+    width: 275,
     marginLeft: -21
   },
   doctorCard: {
     backgroundColor: "#ececec",
     height: 60,
-    width: 300,
+    width: 270,
     justifyContent: "center",
-    marginVertical: 8
+    marginVertical: 8,
+  },
+  activeDoctorCard: {
+    backgroundColor: "#ececec",
+    height: 60,
+    width: 270,
+    justifyContent: "center",
+    marginVertical: 8,
+    borderWidth: 2,
+    borderColor: "#d00000"
   },
   primaryText: {
     fontWeight: "bold",
@@ -57,8 +67,11 @@ const doctors: DoctorCardProps[] = [
 ];
 
 const DoctorCard: React.FC<DoctorCardProps> = ({ doctorName, doctorSurname, slotsAvailable }) => {
+  const [isSelected, setIsSelected] = useState<boolean>(false);
+  //TODO: Implement a active counter to keep track of active / selected cards. Only card can be selected at a time.
+
   return (
-    <TouchableOpacity style={styles.doctorCard}>
+    <TouchableOpacity style={isSelected ? styles.activeDoctorCard : styles.doctorCard} onPress={() => setIsSelected(!isSelected)}>
       <Text style={styles.primaryText}>{doctorName} {doctorSurname}</Text>
       <Text style={styles.secondaryText}>{slotsAvailable} available this week</Text>
     </TouchableOpacity>

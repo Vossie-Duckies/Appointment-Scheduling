@@ -1,4 +1,4 @@
-import { View, StyleSheet } from "react-native";
+import { View, FlatList, StyleSheet } from "react-native";
 import Heading from "@/app/components/Heading"; // If you are getting an error change import path in the quotation marks
 import AppointmentCard from "@/app/components/appointmentCard"; // If you are getting an error change import path in the quotation marks
 
@@ -13,9 +13,7 @@ const styles = StyleSheet.create({
   container: {
     alignItems: "center",
     justifyContent: "center",
-    gap: 25,
-    marginTop: 100,
-    height: 120,
+    gap: 25
   },
 });
 
@@ -44,15 +42,16 @@ export default function UpcomingAppointments() {
   return (
     <View style={styles.container}>
       <Heading text="View Upcoming Appointments" variant="secondary" />
-
-      {patientAppointments.map((appointmentInfo) => (
-        <AppointmentCard
-          patientName={appointmentInfo.patientName}
-          patientSurname={appointmentInfo.patientSurname}
-          patientDate={appointmentInfo.patientDate}
-          patientTime={appointmentInfo.patientTime}
+      <FlatList
+        data={patientAppointments}
+        renderItem={({ item }) => <AppointmentCard
+          patientName={item.patientName}
+          patientSurname={item.patientSurname}
+          patientDate={item.patientDate}
+          patientTime={item.patientTime}
         />
-      ))}
+        }
+      />
     </View>
   );
 }
