@@ -1,5 +1,5 @@
 import { SafeAreaView, SafeAreaProvider } from "react-native-safe-area-context";
-import CreateNewAccount from "./Pages/CreateNewAccount";
+import CreateNewAccount from "./pages/CreateNewAccount";
 
 export default function Index() {
   return (

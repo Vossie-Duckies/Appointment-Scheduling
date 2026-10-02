@@ -1,5 +1,6 @@
 import { View, Text, TouchableOpacity, FlatList, StyleSheet } from "react-native";
 import React, { useState } from "react";
+import { useRouter } from "expo-router";
 import Heading from "@/app/Components/Heading";
 
 interface DoctorCardProps {
@@ -79,8 +80,13 @@ const DoctorCard: React.FC<DoctorCardProps> = ({ doctorName, doctorSurname, slot
 };
 
 const NextButton = () => {
+  const router = useRouter();
+  const handelPressed = () => {
+    router.replace("/pages/setDateandTime");
+  };
+
   return (
-    <TouchableOpacity style={styles.buttonContainer}>
+    <TouchableOpacity style={styles.buttonContainer} onPress={handelPressed}>
       <Text style={styles.buttonText}>Next</Text>
     </TouchableOpacity>
   )

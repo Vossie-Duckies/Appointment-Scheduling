@@ -43,12 +43,12 @@ interface InputData {
 {/*----- Sign-In Button -----*/ }
 const SignInButton = () => {
   const router = useRouter();
-  const ButtonClicked = () => {
-    router.navigate('/Pages/tabs');
+  const handleButtonPressed = () => {
+    router.navigate('/pages/tabs');
   };
 
   return (
-    <TouchableOpacity style={styles.buttonContainer} onPress={ButtonClicked}>
+    <TouchableOpacity style={styles.buttonContainer} onPress={handleButtonPressed}>
       <Text style={styles.buttonText}>Sign In</Text>
     </TouchableOpacity>
   )
