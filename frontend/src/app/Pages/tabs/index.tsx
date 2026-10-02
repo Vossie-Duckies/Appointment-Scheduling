@@ -1,6 +1,7 @@
 import { View, FlatList, StyleSheet } from "react-native";
-import Heading from "@/app/components/Heading"; // If you are getting an error change import path in the quotation marks
+import Heading from "../components/Heading"; // If you are getting an error change import path in the quotation marks
 import AppointmentCard from "@/app/components/appointmentCard"; // If you are getting an error change import path in the quotation marks
+
 
 interface AppointmentCardProps {
   patientName: string;
