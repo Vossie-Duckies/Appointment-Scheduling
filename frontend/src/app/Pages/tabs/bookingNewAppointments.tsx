@@ -1,6 +1,6 @@
 import { View, Text, TouchableOpacity, FlatList, StyleSheet } from "react-native";
 import React, { useState } from "react";
-import Heading from "@/app/components/Heading";
+import Heading from "@/app/Components/Heading";
 
 interface DoctorCardProps {
   doctorName: string,

@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Link, useRouter } from 'expo-router';
-import InputField from "../components/InputField";
-import Heading from "../components/Heading";
+import InputField from "../Components/InputField";
+import Heading from "../Components/Heading";
 
 const styles = StyleSheet.create({
   container: {

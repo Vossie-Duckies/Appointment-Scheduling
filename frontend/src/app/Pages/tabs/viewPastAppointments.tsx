@@ -1,6 +1,6 @@
 import { View, FlatList, StyleSheet } from "react-native";
-import Heading from "@/app/components/Heading";
-import AppointmentCard from "@/app/components/appointmentCard";
+import Heading from "@/app/Components/Heading";
+import AppointmentCard from "@/app/Components/appointmentCard";
 
 interface AppointmentCardProps {
   patientName: string;
