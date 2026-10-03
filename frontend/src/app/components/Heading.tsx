@@ -5,7 +5,7 @@ type headingVariant = "primary" | "secondary";
 interface HeadingProps {
   text: string,
   variant: headingVariant
-}
+};
 
 const styles = StyleSheet.create({
   primary: {
@@ -19,7 +19,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#cecece",
     borderBottomWidth: 1
   },
-  seconday: {
+  secondary: {
     fontSize: 24,
     fontWeight: 'bold',
     width: 200,
@@ -30,14 +30,18 @@ const styles = StyleSheet.create({
     borderBottomColor: "#cecece",
     borderBottomWidth: 1
   }
-})
+});
 
 const Heading: React.FC<HeadingProps> = ({ text, variant }) => {
+  {/* 
+    The Primary variant for the heading is used for Create New Account Page, while the secondary variant
+    is by every other heading.
+  */}
   if (variant === "primary") {
     return <Text accessibilityRole="header" style={styles.primary}>{text}</Text>
   }
   else if (variant === "secondary") {
-    return <Text accessibilityRole="header" style={styles.seconday}>{text}</Text>
+    return <Text accessibilityRole="header" style={styles.secondary}>{text}</Text>
   }
   else {
     return <Text>{text}</Text>
