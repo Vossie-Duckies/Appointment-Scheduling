@@ -2,6 +2,7 @@ from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
+from django.contrib.auth import authenticate
 
 from .models import User
 # Create your views here.
@@ -45,4 +46,33 @@ def register(request):
 
         },
         status = status.HTTP_201_CREATED
+    )
+
+"""
+Expects this json data
+{
+    "email": "john@example.com",
+    "password": "mypassword"
+}
+"""
+@api_view(["POST"])
+def login(request):
+    email = request.data["email"]
+    password = request.data["password"]
+    user = authenticate(request, username=email, password = password)
+
+    if user is None:
+        return Response(
+            {"message": "Invalid email or password"},
+            status = status.HTTP_401_UNAUTHORIZED
+        )
+
+    return Response(
+        {
+            "message": "Login successful",
+            "user_id": user.user_id,
+            "email": user.email,
+            "role": user.role,
+        },
+        status = status.HTTP_200_OK
     )
