@@ -1,9 +1,8 @@
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import Heading from "../Components/Heading";
 import { Calendar } from "react-native-calendars";
 import { useState } from "react";
-import { Background } from "expo-router/build/react-navigation";
 
 const styles = StyleSheet.create({
   container: {
@@ -40,11 +39,23 @@ const styles = StyleSheet.create({
   slotTextActive: {
     color: "white"
   },
+  slotContainer: {
+    flexDirection: "row",
+    gap: 2
+  },
+  confirmButton: {
+    backgroundColor: "#d00000",
+    borderRadius: 10,
+    height: 50,
+    alignContent: "center",
+    justifyContent: "center",
+    paddingLeft: 100
+  }
 });
 
 const availaleSlots: Array<string> = ['09:00', '10:00', '11:00', '13:00', '15:00']
 
-const AvailableTime = ({ time }: { time: string }) => {
+const AvailableTime = ({ time, key }: { time: string, key: number }) => {
   const [active, setActive] = useState<boolean>(false);
 
   const handleActiveState = () => {
@@ -62,7 +73,7 @@ export default function setDateandTime() {
   const [selectedDate, setSelectedDate] = useState<string>("");
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Heading text="Book New Appointment" variant="secondary" />
       <Text style={styles.secondaryText}>Select a Date</Text>
       <View>
@@ -95,10 +106,15 @@ export default function setDateandTime() {
         />
       </View>
       <Text>Select a Date</Text>
-      {availaleSlots.map((slot, index) => (
-        <AvailableTime time={slot} />
-      ))}
-    </View>
+      <View style={styles.slotContainer}>
+        {availaleSlots.map((slot, index) => (
+          <AvailableTime time={slot} key={index} />
+        ))}
+      </View>
+      <TouchableOpacity style={styles.confirmButton}>
+        <Text style={styles.slotTextActive}>Confirm</Text>
+      </TouchableOpacity>
+    </ScrollView>
   )
 }
 
