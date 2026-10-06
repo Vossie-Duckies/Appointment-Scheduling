@@ -9,6 +9,7 @@ const styles = StyleSheet.create({
     alignContent: "center",
     justifyContent: "center",
     paddingHorizontal: 50,
+    marginTop: 30,
     gap: 20
   },
   secondaryText: {

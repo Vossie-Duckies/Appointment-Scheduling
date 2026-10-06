@@ -5,6 +5,7 @@ import Heading from "../Components/Heading";
 
 const styles = StyleSheet.create({
   container: {
+    marginTop: 30,
     alignItems: "center",
     justifyContent: "center",
     gap: 25
@@ -22,6 +23,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline'
   },
   buttonContainer: {
+    marginTop: 30,
     backgroundColor: "#d00000",
     alignItems: "center",
     paddingTop: 13,

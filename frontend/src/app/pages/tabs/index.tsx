@@ -12,6 +12,7 @@ interface AppointmentCardProps {
 
 const styles = StyleSheet.create({
   container: {
+    marginTop: 30,
     alignItems: "center",
     justifyContent: "center",
     gap: 25

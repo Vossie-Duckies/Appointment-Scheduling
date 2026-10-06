@@ -11,6 +11,7 @@ interface DoctorCardProps {
 
 const styles = StyleSheet.create({
   container: {
+    marginTop: 30,
     alignContent: "center",
     justifyContent: "center",
     gap: 25,
