@@ -9,7 +9,7 @@ const styles = StyleSheet.create({
     alignContent: "center",
     justifyContent: "center",
     paddingHorizontal: 50,
-    gap: 25
+    gap: 20
   },
   secondaryText: {
     color: "#9d9d9d",
@@ -41,7 +41,8 @@ const styles = StyleSheet.create({
   },
   slotContainer: {
     flexDirection: "row",
-    gap: 2
+    gap: 2,
+    marginLeft: -20
   },
   confirmButton: {
     backgroundColor: "#d00000",
