@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import { useRouter } from "expo-router";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import Heading from "../Components/Heading";
 import { Calendar } from "react-native-calendars";
@@ -73,6 +74,11 @@ const AvailableTime = ({ time, key }: { time: string, key: number }) => {
 
 export default function setDateandTime() {
   const [selectedDate, setSelectedDate] = useState<string>("");
+  const router = useRouter();
+
+  const handleConfirmPressed = () => {
+    router.replace("/pages/AppointmentConfirmed");
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -113,7 +119,7 @@ export default function setDateandTime() {
           <AvailableTime time={slot} key={index} />
         ))}
       </View>
-      <TouchableOpacity style={styles.confirmButton}>
+      <TouchableOpacity style={styles.confirmButton} onPress={() => handleConfirmPressed()}>
         <Text style={styles.slotTextActive}>Confirm</Text>
       </TouchableOpacity>
     </ScrollView>

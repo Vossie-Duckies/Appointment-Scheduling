@@ -1,7 +1,9 @@
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Link, useRouter } from 'expo-router';
+import { useState, useEffect } from "react";
 import InputField from "../Components/InputField";
 import Heading from "../Components/Heading";
+import Toast from "react-native-toast-message";
 
 const styles = StyleSheet.create({
   container: {
@@ -42,10 +44,29 @@ interface InputData {
   secureText: boolean
 };
 
+interface SignInButtonProps {
+  patientName: string,
+  patientSurname: string,
+  patientPassword: string
+};
+
 {/*----- Sign-In Button -----*/ }
-const SignInButton = () => {
+const SignInButton: React.FC<SignInButtonProps> = ({ patientName, patientEmail, patientPassword }) => {
   const router = useRouter();
+  const showToast = (issue: string) => {
+    Toast.show({
+      type: 'error',
+      text1: `${issue}`
+    });
+  }
   const handleButtonPressed = () => {
+
+    if (!patientName || !patientEmail || !patientPassword) {
+      const issue: string = 'Unable to log in. Please check your details and try and again';
+      showToast(issue);
+      return;
+    }
+
     router.navigate('/pages/tabs');
   };
 
@@ -58,6 +79,10 @@ const SignInButton = () => {
 
 {/*---- Create New Account Page ----*/ }
 export default function CreateNewAccount() {
+  const [patientName, setPatientName] = useState<string>('');
+  const [patientEmail, setPatientEmail] = useState<string>('');
+  const [patientPassword, setPatientPassword] = useState<string>('');
+
   const nameInputData: InputData = {
     placeholder: "Enter your name",
     labelName: "NAME",
@@ -83,18 +108,24 @@ export default function CreateNewAccount() {
         placeholder={nameInputData.placeholder}
         labelName={nameInputData.labelName}
         secureText={nameInputData.secureText}
+        value={patientName.trim()}
+        onValueChange={setPatientName}
       />
       <InputField
         placeholder={emailInputData.placeholder}
         labelName={emailInputData.labelName}
         secureText={emailInputData.secureText}
+        value={patientEmail.trim()}
+        onValueChange={setPatientEmail}
       />
       <InputField
         placeholder={passwordInputData.placeholder}
         labelName={passwordInputData.labelName}
         secureText={passwordInputData.secureText}
+        value={patientPassword.trim()}
+        onValueChange={setPatientPassword}
       />
-      <SignInButton />
+      <SignInButton patientName={patientName} patientEmail={patientEmail} patientPassword={patientPassword} />
       <Text style={styles.text}>Already Registered? <Link href="/" style={styles.textUnderline}>Log in</Link></Text>
     </View >
   )
