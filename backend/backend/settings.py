@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'appointment_backend',
     'accounts',
+    'appointments',
 ]
 
 AUTH_USER_MODEL = "accounts.User"
