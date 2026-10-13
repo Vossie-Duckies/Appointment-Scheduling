@@ -4,7 +4,9 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import authenticate
 from django.contrib.auth import authenticate, login as auth_login
-from .models import User
+from django.db import transaction
+from .models import User, Patient
+
 # Create your views here.
 
 @api_view(["GET"])
@@ -19,34 +21,52 @@ def hello_world(request):
     "password": "mypassword",
     "role": "PATIENT"
 }
-type of data expected from front end
+type of data expected from front end and more can be sent if its patient
+{
+    "date_of_birth": "2000-05-15",
+    "gender": "Female"
+}
 """
 @api_view(["POST"])
+@transaction.atomic
 def register(request):
-
     first_name = request.data["first_name"]
-    last_name = request.data ["last_name"]
-    email = request.data ["email"]
-    password = request.data ["password"]
-    role = request.data ["role"]
+    last_name = request.data["last_name"]
+    email = request.data["email"]
+    password = request.data["password"]
+    role = request.data["role"]
+
+    # Get patient details if the account is for a patient
+    if role == "PATIENT":
+        date_of_birth = request.data["date_of_birth"]
+        gender = request.data["gender"]
 
     user = User.objects.create_user(
         email=email,
-        password = password,
-        first_name = first_name,
-        last_name = last_name,
-        role = role
+        password=password,
+        first_name=first_name,
+        last_name=last_name,
+        role=role
     )
+
+    # Create the patient profile linked to the new user
+    if user.role == "PATIENT":
+        Patient.objects.create(
+            user=user,
+            date_of_birth=date_of_birth,
+            gender=gender
+        )
+
     return Response(
         {
             "message": "Account created successfully",
             "user_id": user.user_id,
             "email": user.email,
             "role": user.role,
-
         },
-        status = status.HTTP_201_CREATED
+        status=status.HTTP_201_CREATED
     )
+
 
 """
 Expects this json data

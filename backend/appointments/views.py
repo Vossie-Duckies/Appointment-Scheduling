@@ -60,10 +60,17 @@ Expects this data
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def book_appointment_view(request):
+    try:
+        patient = Patient.objects.get(user=request.user)
+    except Patient.DoesNotExist:
+        raise PermissionDenied("Your account has no patient profile.")
+
     appointment = book_appointment(
+        patient=patient,
         slot_id=request.data["slot_id"],
         reason=request.data["reason"],
     )
+
     return Response(
         {
             "appointment_id": appointment.appointment_id,
