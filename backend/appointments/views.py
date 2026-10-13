@@ -11,8 +11,8 @@ from accounts.models import Doctor
 from accounts.permissions import IsDoctorRole
 from accounts.models import Patient
 from .models import Doctor_slot, Appointment
-from .serializers import DoctorSlotSerializer, AppointmentSerializer
-from .services import book_appointment
+from .serializers import  AppointmentSerializer
+from .services import book_appointment, cancel_appointment
 
 
 """
@@ -82,6 +82,44 @@ def book_appointment_view(request):
         },
         status=status.HTTP_201_CREATED
     )
+
+
+@transaction.atomic
+def cancel_appointment(patient, appointment_id):
+    try:
+        appointment = (
+            Appointment.objects.select_for_update()
+            .select_related("slot")
+            .get(
+                appointment_id=appointment_id,
+                patient=patient,
+            )
+        )
+    except Appointment.DoesNotExist:
+        raise ValidationError({
+            "appointment": "Appointment not found."
+        })
+
+    if appointment.status == "CANCELLED":
+        raise ValidationError({
+            "appointment": "This appointment is already cancelled."
+        })
+
+    if appointment.status == "COMPLETED":
+        raise ValidationError({
+            "appointment": "A completed appointment cannot be cancelled."
+        })
+
+    appointment.status = "CANCELLED"
+    appointment.updated_at = timezone.now()
+    appointment.save(update_fields=["status", "updated_at"])
+
+    slot = appointment.slot
+    slot.status = "AVAILABLE"
+    slot.save(update_fields=["status"])
+
+    return appointment
+
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -170,4 +208,4 @@ def create_doctor_slot(request):
         },
         status=status.HTTP_201_CREATED,
     )
-    
+
