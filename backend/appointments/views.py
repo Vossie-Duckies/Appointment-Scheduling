@@ -12,6 +12,25 @@ from .serializers import DoctorSlotSerializer, AppointmentSerializer
 from .services import book_appointment
 
 
+"""
+It returns this from the database
+{
+    [
+        {
+            "slot_id": 1,
+            "doctor_id": 3,
+            "slot_date": "2026-10-14",
+            "start_time": "09:00:00",
+            "end_time": "09:30:00",
+            "staus": "Available"
+        },
+        {
+            another slot as above
+        }
+    ]
+}
+so this returns an array of slots that are available 
+"""
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def available_slots(request):
@@ -22,33 +41,37 @@ def available_slots(request):
         "slot_date", "start_time"
     )
 
-    serializer = DoctorSlotSerializer(slots, many=True)
-    return Response(serializer.data)
+    return Response(list(slots.values(
+        "slot_id",
+        "doctor_id",
+        "slot_date",
+        "start_time",
+        "end_time",
+        "status",
+    )))
 
-
+"""
+Expects this data
+{
+    "slot_id": 1,
+    "reason": "General consultation"
+}
+"""
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def book_appointment_view(request):
-    if request.user.role != "PATIENT":
-        raise PermissionDenied("Only patients can book appointments.")
-
-    try:
-        patient = Patient.objects.get(user=request.user)
-    except Patient.DoesNotExist:
-        raise PermissionDenied("Your account has no patient profile.")
-
-    serializer = AppointmentSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-
     appointment = book_appointment(
-        patient=patient,
-        slot_id=serializer.validated_data["slot"].slot_id,
-        reason=serializer.validated_data["reason"],
+        slot_id=request.data["slot_id"],
+        reason=request.data["reason"],
     )
-
-    output = AppointmentSerializer(appointment)
-    return Response(output.data, status=status.HTTP_201_CREATED)
-
+    return Response(
+        {
+            "appointment_id": appointment.appointment_id,
+            "slot_id": appointment.slot_id,
+            "reason": appointment.reason,
+        },
+        status=status.HTTP_201_CREATED
+    )
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])

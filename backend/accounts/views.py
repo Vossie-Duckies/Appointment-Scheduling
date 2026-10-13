@@ -3,7 +3,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import authenticate
-
+from django.contrib.auth import authenticate, login as auth_login
 from .models import User
 # Create your views here.
 
@@ -66,6 +66,7 @@ def login(request):
             {"message": "Invalid email or password"},
             status = status.HTTP_401_UNAUTHORIZED
         )
+    auth_login(request, user)
 
     return Response(
         {
