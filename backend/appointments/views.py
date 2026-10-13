@@ -1,11 +1,11 @@
-
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
-from datetime import date
+from datetime import date, time
 from rest_framework.exceptions import ValidationError
 from accounts.models import Doctor
 from accounts.permissions import IsDoctorRole
@@ -107,7 +107,7 @@ This creates the doctor slot and needs this data
     "end_time": "09:30"
 }
 """
-@api_view([POST])
+@api_view(["POST"])
 @permission_classes([IsAuthenticated, IsDoctorRole])
 def create_doctor_slot(request):
     slot_date = request.data.get("slot_date")
