@@ -4,6 +4,8 @@ from rest_framework.exceptions import ValidationError
 from .models import Doctor_slot, Appointment
 
 @transaction.atomic
+
+@transaction.atomic
 def book_appointment(patient, slot_id, reason):
     try:
         slot = Doctor_slot.objects.select_for_update().get(
@@ -20,14 +22,34 @@ def book_appointment(patient, slot_id, reason):
     )
 
     if slot_datetime <= timezone.localtime():
-        raise ValidationError({"slot": "You cannot book a slot in the past."})
+        raise ValidationError({
+            "slot": "You cannot book a slot in the past."
+        })
+    try:
+        appointment = Appointment.objects.get(slot=slot)
+    except Appointment.DoesNotExist:
+        appointment = Appointment.objects.create(
+            patient=patient,
+            slot=slot,
+            reason=reason,
+            status="BOOKED",
+        )
+    else:
+        if appointment.status != "CANCELLED":
+            raise ValidationError({
+                "slot": "This slot already has an appointment."
+            })
 
-    appointment = Appointment.objects.create(
-        patient=patient,
-        slot=slot,
-        reason=reason,
-        status="BOOKED",
-    )
+        appointment.patient = patient
+        appointment.reason = reason
+        appointment.status = "BOOKED"
+        appointment.updated_at = timezone.now()
+        appointment.save(update_fields=[
+            "patient",
+            "reason",
+            "status",
+            "updated_at",
+        ])
 
     slot.status = "BOOKED"
     slot.save(update_fields=["status"])
