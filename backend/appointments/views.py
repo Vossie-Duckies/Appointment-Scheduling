@@ -83,43 +83,27 @@ def book_appointment_view(request):
         status=status.HTTP_201_CREATED
     )
 
-
-@transaction.atomic
-def cancel_appointment(patient, appointment_id):
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def cancel_appointment_view(request, appointment_id):
     try:
-        appointment = (
-            Appointment.objects.select_for_update()
-            .select_related("slot")
-            .get(
-                appointment_id=appointment_id,
-                patient=patient,
-            )
-        )
-    except Appointment.DoesNotExist:
-        raise ValidationError({
-            "appointment": "Appointment not found."
-        })
+        patient = Patient.objects.get(user=request.user)
+    except Patient.DoesNotExist:
+        raise PermissionDenied("You do not have a patient profile.")
 
-    if appointment.status == "CANCELLED":
-        raise ValidationError({
-            "appointment": "This appointment is already cancelled."
-        })
+    appointment = cancel_appointment(
+        patient=patient,
+        appointment_id=appointment_id,
+    )
 
-    if appointment.status == "COMPLETED":
-        raise ValidationError({
-            "appointment": "A completed appointment cannot be cancelled."
-        })
-
-    appointment.status = "CANCELLED"
-    appointment.updated_at = timezone.now()
-    appointment.save(update_fields=["status", "updated_at"])
-
-    slot = appointment.slot
-    slot.status = "AVAILABLE"
-    slot.save(update_fields=["status"])
-
-    return appointment
-
+    return Response(
+        {
+            "message": "Appointment cancelled successfully.",
+            "appointment_id": appointment.appointment_id,
+            "status": appointment.status,
+        },
+        status=status.HTTP_200_OK,
+    )
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
