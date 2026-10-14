@@ -15,6 +15,45 @@ from .serializers import  AppointmentSerializer
 from .services import book_appointment, cancel_appointment
 
 
+
+"""
+This returns all the appointments a doctor has
+"""
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsDoctorRole])
+def doctor_appointments(request):
+    doctor = Doctor.objects.get(user=request.user)
+
+    appointments = (
+        Appointment.objects
+        .filter(slot__doctor=doctor)
+        .select_related(
+            "patient__user",
+            "slot",
+        )
+        .order_by("slot__slot_date", "slot__start_time")
+    )
+    data = []
+    for appointment in appointments:
+        item = {
+            "appointment_id": appointment.appointment_id,
+            "patient_name": (
+                f"{appointment.patient.user.first_name} "
+                f"{appointment.patient.user.last_name}"
+            ),
+            "patient_email": appointment.patient.user.email,
+            "slot_date": appointment.slot.slot_date,
+            "start_time": appointment.slot.start_time,
+            "end_time": appointment.slot.end_time,
+            "reason": appointment.reason,
+            "status": appointment.status,
+        }
+
+        data.append(item)
+
+    return Response(data, status=status.HTTP_200_OK)
+
+
 """
 It returns this from the database
 {
@@ -121,6 +160,7 @@ def my_appointments(request):
 
     serializer = AppointmentSerializer(appointments, many=True)
     return Response(serializer.data)
+
 """
 This creates the doctor slot and needs this data
 {
