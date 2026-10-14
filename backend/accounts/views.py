@@ -35,7 +35,6 @@ def register(request):
     password = request.data["password"]
     role = request.data["role"]
 
-    # Get patient details if the account is for a patient
     if role == "PATIENT":
         date_of_birth = request.data["date_of_birth"]
         gender = request.data["gender"]
@@ -48,7 +47,7 @@ def register(request):
         role=role
     )
 
-    # Create the patient profile linked to the new user
+
     if user.role == "PATIENT":
         Patient.objects.create(
             user=user,
@@ -97,6 +96,17 @@ def login(request):
         status = status.HTTP_200_OK
     )
 
+"""
+This creates the account for a doctor 
+I expects this type of data 
+{
+  "first_name": "Jane",
+  "last_name": "Smith",
+  "email": "jane.smith@example.com",
+  "password": "DoctorTest123!",
+  "license_no": "DOC-1002"
+}
+"""
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, IsAdminRole])
 @transaction.atomic
@@ -112,7 +122,6 @@ def create_doctor(request):
             {"error": "All fields are required."},
             status=status.HTTP_400_BAD_REQUEST,
         )
-
     if User.objects.filter(email=email).exists():
         return Response(
             {"error": "This email is already registered."},
@@ -124,7 +133,6 @@ def create_doctor(request):
             {"error": "This licence number is already registered."},
             status=status.HTTP_400_BAD_REQUEST,
         )
-
     user = User.objects.create_user(
         email=email,
         password=password,
@@ -132,7 +140,6 @@ def create_doctor(request):
         last_name=last_name,
         role="DOCTOR",
     )
-
     doctor = Doctor.objects.create(
         user=user,
         license_no=license_no,

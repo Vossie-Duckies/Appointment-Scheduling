@@ -18,8 +18,9 @@ from frontend
     "type": "EMAIL",
     "appointment_id": 31
 }
-This could be the json structure sent to this api which is
-found in /api/send_notification
+-The type is the type of notiification  
+- For more details on notification types go to ./notification/strategies
+No idea how the notification will work but yeah
 """
 @api_view(["POST"])
 def send_notification(request):

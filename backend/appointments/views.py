@@ -15,8 +15,13 @@ from .services import book_appointment, cancel_appointment, complete_appointment
 
 
 """"
-The next two function is marking the appointment is either complete
-or no show
+This allows the doctor to mark an appointment as completed
+It returns the a H22P 200 OK and the following data
+{
+  "message": "Appointment marked as completed.",
+  "appointment_id": 1,
+  "status": "COMPLETED"
+}
 """
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, IsDoctorRole])
@@ -40,7 +45,15 @@ def complete_appointment_view(request, appointment_id):
         status=status.HTTP_200_OK,
     )
 
-
+"""
+This allows the doctor to mark as no show 
+It returns the a H22P 200 OK and the following data
+{
+  "message": "Appointment marked as no-show.",
+  "appointment_id": 2,
+  "status": "NOSHOW"
+}
+"""
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, IsDoctorRole])
 def mark_no_show_view(request, appointment_id):
@@ -63,6 +76,25 @@ def mark_no_show_view(request, appointment_id):
         status=status.HTTP_200_OK,
     )
 
+"""
+This returns the appointments a doctor has 
+It returns the following
+[
+  {
+    "appointment_id": 1,
+    "patient_name": "John Doe",
+    "patient_email": "john@example.com",
+    "slot_date": "2026-10-15",
+    "start_time": "10:00:00",
+    "end_time": "10:30:00",
+    "reason": "General consultation",
+    "status": "BOOKED"
+  },
+  {
+    another appointment as above
+  }
+]
+"""
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, IsDoctorRole])
 def doctor_appointments(request):
@@ -164,7 +196,15 @@ def book_appointment_view(request):
         },
         status=status.HTTP_201_CREATED
     )
-
+"""
+Cancels the appointment 
+return HTTP 200 if it was succesful and the data below
+{
+  "message": "Appointment cancelled successfully.",
+  "appointment_id": 2,
+  "status": "CANCELLED"
+}
+"""
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def cancel_appointment_view(request, appointment_id):
@@ -187,6 +227,23 @@ def cancel_appointment_view(request, appointment_id):
         status=status.HTTP_200_OK,
     )
 
+"""
+It returns all the appointment the user currently has 
+[
+  {
+    "appointment_id": 1,
+    "patient": 1,
+    "slot": 2,
+    "created_at": "2026-10-14T10:00:00Z",
+    "status": "COMPLETED",
+    "reason": "General consultation"
+  },
+  {
+    another appointment as above if user as another appointment
+  }
+]
+This is the data it will return 
+"""
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def my_appointments(request):
