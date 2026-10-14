@@ -6,19 +6,63 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from datetime import date, time
-from rest_framework.exceptions import ValidationError
 from accounts.models import Doctor
 from accounts.permissions import IsDoctorRole
 from accounts.models import Patient
 from .models import Doctor_slot, Appointment
 from .serializers import  AppointmentSerializer
-from .services import book_appointment, cancel_appointment
+from .services import book_appointment, cancel_appointment, complete_appointment, mark_no_show
 
 
-
+""""
+The next two function is marking the appointment is either complete
+or no show
 """
-This returns all the appointments a doctor has
-"""
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsDoctorRole])
+def complete_appointment_view(request, appointment_id):
+    try:
+        doctor = Doctor.objects.get(user=request.user)
+    except Doctor.DoesNotExist:
+        raise PermissionDenied("Your account has no doctor profile.")
+
+    appointment = complete_appointment(
+        doctor=doctor,
+        appointment_id=appointment_id,
+    )
+
+    return Response(
+        {
+            "message": "Appointment marked as completed.",
+            "appointment_id": appointment.appointment_id,
+            "status": appointment.status,
+        },
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsDoctorRole])
+def mark_no_show_view(request, appointment_id):
+    try:
+        doctor = Doctor.objects.get(user=request.user)
+    except Doctor.DoesNotExist:
+        raise PermissionDenied("Your account has no doctor profile.")
+
+    appointment = mark_no_show(
+        doctor=doctor,
+        appointment_id=appointment_id,
+    )
+
+    return Response(
+        {
+            "message": "Appointment marked as no-show.",
+            "appointment_id": appointment.appointment_id,
+            "status": appointment.status,
+        },
+        status=status.HTTP_200_OK,
+    )
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, IsDoctorRole])
 def doctor_appointments(request):
@@ -52,7 +96,6 @@ def doctor_appointments(request):
         data.append(item)
 
     return Response(data, status=status.HTTP_200_OK)
-
 
 """
 It returns this from the database
