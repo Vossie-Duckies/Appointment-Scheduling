@@ -1,10 +1,13 @@
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Link, useRouter } from 'expo-router';
-import InputField from "../components/InputField";
-import Heading from "@/app/components/Heading";
+import { useState } from "react";
+import InputField from "../Components/InputField";
+import Heading from "../Components/Heading";
+import Toast from "react-native-toast-message";
 
 const styles = StyleSheet.create({
   container: {
+    marginTop: 30,
     alignItems: "center",
     justifyContent: "center",
     gap: 25
@@ -22,6 +25,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline'
   },
   buttonContainer: {
+    marginTop: 30,
     backgroundColor: "#d00000",
     alignItems: "center",
     paddingTop: 13,
@@ -40,15 +44,34 @@ interface InputData {
   secureText: boolean
 };
 
+interface SignInButtonProps {
+  patientName: string,
+  patientSurname: string,
+  patientPassword: string
+};
+
 {/*----- Sign-In Button -----*/ }
-const SignInButton = () => {
+const SignInButton: React.FC<SignInButtonProps> = ({ patientName, patientEmail, patientPassword }) => {
   const router = useRouter();
-  const ButtonClicked = () => {
-    router.navigate('/Pages/tabs');
+  const showToast = (issue: string) => {
+    Toast.show({
+      type: 'error',
+      text1: `${issue}`
+    });
+  }
+  const handleButtonPressed = () => {
+
+    if (!patientName || !patientEmail || !patientPassword) {
+      const issue: string = 'Unable to log in. Please check your details and try and again';
+      showToast(issue);
+      return;
+    }
+
+    router.navigate('/pages/tabs');
   };
 
   return (
-    <TouchableOpacity style={styles.buttonContainer} onPress={ButtonClicked}>
+    <TouchableOpacity style={styles.buttonContainer} onPress={handleButtonPressed}>
       <Text style={styles.buttonText}>Sign In</Text>
     </TouchableOpacity>
   )
@@ -56,6 +79,10 @@ const SignInButton = () => {
 
 {/*---- Create New Account Page ----*/ }
 export default function CreateNewAccount() {
+  const [patientName, setPatientName] = useState<string>('');
+  const [patientEmail, setPatientEmail] = useState<string>('');
+  const [patientPassword, setPatientPassword] = useState<string>('');
+
   const nameInputData: InputData = {
     placeholder: "Enter your name",
     labelName: "NAME",
@@ -81,18 +108,24 @@ export default function CreateNewAccount() {
         placeholder={nameInputData.placeholder}
         labelName={nameInputData.labelName}
         secureText={nameInputData.secureText}
+        value={patientName.trim()}
+        onValueChange={setPatientName}
       />
       <InputField
         placeholder={emailInputData.placeholder}
         labelName={emailInputData.labelName}
         secureText={emailInputData.secureText}
+        value={patientEmail.trim()}
+        onValueChange={setPatientEmail}
       />
       <InputField
         placeholder={passwordInputData.placeholder}
         labelName={passwordInputData.labelName}
         secureText={passwordInputData.secureText}
+        value={patientPassword.trim()}
+        onValueChange={setPatientPassword}
       />
-      <SignInButton />
+      <SignInButton patientName={patientName} patientEmail={patientEmail} patientPassword={patientPassword} />
       <Text style={styles.text}>Already Registered? <Link href="/" style={styles.textUnderline}>Log in</Link></Text>
     </View >
   )
