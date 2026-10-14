@@ -1,15 +1,21 @@
 import { View, Text, TouchableOpacity, FlatList, StyleSheet } from "react-native";
 import React, { useState } from "react";
-import { Ionicons } from "@react-native-vector-icons/ionicons";
 import { useRouter } from "expo-router";
 import Heading from "@/app/Components/Heading";
 import Avatar from "@/app/Components/Avatar";
+import { handleImageLoaded } from "expo-image/build/observe";
 
-interface DoctorCardProps {
+interface DoctorCardKeys {
+  id: number,
   doctorName: string,
   doctorSurname: string,
   slotsAvailable: number,
-  imageURL: string
+  imageURL: string,
+};
+
+interface DoctorCardProps extends DoctorCardKeys {
+  isSelected: boolean,
+  onSelect: () => void
 };
 
 const styles = StyleSheet.create({
@@ -77,18 +83,22 @@ const styles = StyleSheet.create({
   }
 });
 
-const doctors: DoctorCardProps[] = [
-  { doctorName: "Dr. Sarai", doctorSurname: "Kelly", slotsAvailable: 5, imageURL: "https://images.peopleimages.com/picture/202307/2716283-man-doctor-portrait-and-thumbs-up-with-smile-from-healthcare-and-medical-work-in-studio.-isolated-white-background-and-happy-male-professional-with-emoji-and-yes-hand-gesture-for-success-and-like-fit_400_400.jpg" },
-  { doctorName: "Dr. Remy", doctorSurname: "Novak", slotsAvailable: 7, imageURL: "https://images.peopleimages.com/picture/202305/2702046-tablet-doctor-portrait-and-woman-isolated-on-a-white-background-of-happy-healthcare-research-or-telehealth-services.-face-of-african-medical-person-typing-on-digital-tech-and-paperless-app-in-studio-fit_400_400.jpg" },
-  { doctorName: "Dr. Siya", doctorSurname: "Cele", slotsAvailable: 3, imageURL: "https://images.peopleimages.com/picture/202305/2702046-tablet-doctor-portrait-and-woman-isolated-on-a-white-background-of-happy-healthcare-research-or-telehealth-services.-face-of-african-medical-person-typing-on-digital-tech-and-paperless-app-in-studio-fit_400_400.jpg" }
+const doctors: DoctorCardKeys[] = [
+  { id: 1, doctorName: "Dr. Sarai", doctorSurname: "Kelly", slotsAvailable: 5, imageURL: "https://images.peopleimages.com/picture/202307/2716283-man-doctor-portrait-and-thumbs-up-with-smile-from-healthcare-and-medical-work-in-studio.-isolated-white-background-and-happy-male-professional-with-emoji-and-yes-hand-gesture-for-success-and-like-fit_400_400.jpg" },
+  { id: 2, doctorName: "Dr. Remy", doctorSurname: "Novak", slotsAvailable: 7, imageURL: "https://images.peopleimages.com/picture/202305/2702046-tablet-doctor-portrait-and-woman-isolated-on-a-white-background-of-happy-healthcare-research-or-telehealth-services.-face-of-african-medical-person-typing-on-digital-tech-and-paperless-app-in-studio-fit_400_400.jpg" },
+  { id: 3, doctorName: "Dr. Siya", doctorSurname: "Cele", slotsAvailable: 3, imageURL: "https://images.peopleimages.com/picture/202305/2702046-tablet-doctor-portrait-and-woman-isolated-on-a-white-background-of-happy-healthcare-research-or-telehealth-services.-face-of-african-medical-person-typing-on-digital-tech-and-paperless-app-in-studio-fit_400_400.jpg" }
 ];
 
-const DoctorCard: React.FC<DoctorCardProps> = ({ doctorName, doctorSurname, slotsAvailable, imageURL }) => {
-  const [isSelected, setIsSelected] = useState<boolean>(false);
-  //TODO: Implement a active counter to keep track of active / selected cards. Only card can be selected at a time.
+const DoctorCard: React.FC<DoctorCardProps> = ({
+  doctorName,
+  doctorSurname,
+  slotsAvailable,
+  imageURL,
+  isSelected,
+  onSelect }) => {
 
   return (
-    <TouchableOpacity style={isSelected ? styles.activeDoctorCard : styles.doctorCard} onPress={() => setIsSelected(!isSelected)}>
+    <TouchableOpacity style={isSelected ? styles.activeDoctorCard : styles.doctorCard} onPress={onSelect}>
       <View style={styles.imageContainer}>
         <Avatar url={imageURL} />
       </View>
@@ -114,6 +124,12 @@ const NextButton = () => {
 };
 
 export default function BookingNewAppointments() {
+  const [selectedDoctorId, setSelectedDoctorId] = useState<number | null>(null);
+  const handleSelectDoctor = (id: number) => {
+    // Tapping the same the doctor deselects them; tapping a new doctor selects them
+    setSelectedDoctorId((prevId: number | null) => (prevId === id ? null : id))
+  };
+
   return (
     <View style={styles.container}>
       <View >
@@ -123,11 +139,14 @@ export default function BookingNewAppointments() {
       <FlatList
         style={styles.body}
         data={doctors}
+        keyExtractor={(item) => item.id}
         renderItem={({ item }) => <DoctorCard
           doctorName={item.doctorName}
           doctorSurname={item.doctorSurname}
           slotsAvailable={item.slotsAvailable}
           imageURL={item.imageURL}
+          isSelected={selectedDoctorId === item.id}
+          onSelect={() => handleSelectDoctor(item.id)}
         />}
       />
       <NextButton />

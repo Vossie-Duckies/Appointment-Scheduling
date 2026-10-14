@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import Heading from "../Components/Heading";
 import { Calendar } from "react-native-calendars";
@@ -56,25 +56,32 @@ const styles = StyleSheet.create({
   }
 });
 
+interface AvailableTimeProps {
+  time: string,
+  isSelected: boolean,
+  onSelect?: () => void
+}
+
 const availaleSlots: Array<string> = ['09:00', '10:00', '11:00', '13:00', '15:00']
 
-const AvailableTime = ({ time, key }: { time: string, key: number }) => {
-  const [active, setActive] = useState<boolean>(false);
-
-  const handleActiveState = () => {
-    setActive(!active);
-  };
+const AvailableTime: React.FC<AvailableTimeProps> = ({ time, isSelected, onSelect }) => {
 
   return (
-    <TouchableOpacity style={active ? styles.slotActive : styles.slotInactive} onPress={() => handleActiveState()}>
-      <Text style={active ? styles.slotTextActive : styles.slotTextInactive}>{time}</Text>
+    <TouchableOpacity style={isSelected ? styles.slotActive : styles.slotInactive} onPress={onSelect}>
+      <Text style={isSelected ? styles.slotTextActive : styles.slotTextInactive}>{time}</Text>
     </TouchableOpacity>
   )
 };
 
 export default function setDateandTime() {
   const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const router = useRouter();
+
+  const handleSelectTime = (time: string) => {
+    // Toggles deselect if already chosen, otherwise select the new slot
+    setSelectedTime((prevTime: string | null) => (prevTime === time ? null : time))
+  }
 
   const handleConfirmPressed = () => {
     router.replace("/pages/AppointmentConfirmed");
@@ -115,8 +122,14 @@ export default function setDateandTime() {
       </View>
       <Text>Select a Date</Text>
       <View style={styles.slotContainer}>
-        {availaleSlots.map((slot, index) => (
-          <AvailableTime time={slot} key={index} />
+        {availaleSlots.map((slot) => (
+          <AvailableTime
+            time={slot}
+            key={slot}
+            isSelected={selectedTime === slot}
+            onSelect={() => handleSelectTime(slot)}
+          />
+
         ))}
       </View>
       <TouchableOpacity style={styles.confirmButton} onPress={() => handleConfirmPressed()}>

@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Link, useRouter } from 'expo-router';
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import InputField from "../Components/InputField";
 import Heading from "../Components/Heading";
 import Toast from "react-native-toast-message";
