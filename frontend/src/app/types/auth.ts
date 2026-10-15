@@ -1,5 +1,5 @@
-type UserRoles = "DOCTOR" | "PATIENT";
-type UserGender = "male" | "female" | "non-binary";
+export type UserRoles = "DOCTOR" | "PATIENT";
+export type UserGender = "male" | "female" | "prefer not say";
 
 export interface LoginCredentials {
   email: string,
@@ -11,9 +11,9 @@ export interface RegistrationCredentials {
   last_name: string,
   email: string,
   password: string,
-  role: UserRoles,
+  role: string,
   date_of_birth: string,
-  gender: UserGender,
+  gender: string,
 };
 
 export interface NewDoctorCredentials {
