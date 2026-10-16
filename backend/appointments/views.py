@@ -139,7 +139,9 @@ It returns this from the database
             "slot_date": "2026-10-14",
             "start_time": "09:00:00",
             "end_time": "09:30:00",
-            "staus": "Available"
+            "staus": "Available",
+            "doctor_first_name": "Mang",
+            "doctor_last_name": "Kemang""
         },
         {
             another slot as above
@@ -153,21 +155,23 @@ so this returns an array of slots that are available
 def available_slots(request):
     slots = Doctor_slot.objects.filter(
         status="AVAILABLE",
-        slot_date__gte=timezone.localdate(),
-    ).select_related("doctor__user").order_by(
+        slot_date__gte=timezone.localtime().date()
+    ).select_related("doctor_user").order_by(
         "slot_date", "start_time"
     )
 
     return Response(list(slots.values(
         "slot_id",
         "doctor_id",
+        "doctor_first_name",
+        "doctor_last_name",
         "slot_date",
         "start_time",
         "end_time",
         "status",
-    )))
+    ))
 
-"""
+)"""
 Expects this data
 {
     "slot_id": 1,
