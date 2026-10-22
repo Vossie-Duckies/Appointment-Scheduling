@@ -6,6 +6,8 @@ from django.contrib.auth import authenticate, login as auth_login
 from django.db import transaction
 from .models import User, Doctor, Patient
 from .permissions import IsAdminRole
+from rest_framework_simplejwt.tokens import RefreshToken
+
 # Create your views here.
 
 @api_view(["GET"])
@@ -54,6 +56,8 @@ def register(request):
             date_of_birth=date_of_birth,
             gender=gender
         )
+    refresh = RefreshToken.for_user(user)
+    access = refresh.access_token
 
     return Response(
         {
@@ -61,6 +65,8 @@ def register(request):
             "user_id": user.user_id,
             "email": user.email,
             "role": user.role,
+            "access": str(access),
+            "refresh": sr(refresh),
         },
         status=status.HTTP_201_CREATED
     )
@@ -78,13 +84,14 @@ def login(request):
     email = request.data["email"]
     password = request.data["password"]
     user = authenticate(request, username=email, password = password)
-
+    
     if user is None:
         return Response(
             {"message": "Invalid email or password"},
             status = status.HTTP_401_UNAUTHORIZED
         )
-    auth_login(request, user)
+    refresh = RefreshToken.for_user(user)
+    access = refresh.access_token
 
     return Response(
         {
@@ -92,6 +99,8 @@ def login(request):
             "user_id": user.user_id,
             "email": user.email,
             "role": user.role,
+            "access": str(access),
+            "refresh": str(refresh),
         },
         status = status.HTTP_200_OK
     )
