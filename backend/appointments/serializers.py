@@ -1,30 +1,35 @@
-
 from rest_framework import serializers
-from .models import Doctor_slot, Appointment
+from .models import Appointment, Doctor_slot
 
 
 class DoctorSlotSerializer(serializers.ModelSerializer):
-    doctor_name = serializers.CharField(
+    doctor_first_name = serializers.CharField(
         source="doctor.user.first_name",
-        read_only=True,
+        read_only=True
+    )
+    doctor_last_name = serializers.CharField(
+        source="doctor.user.last_name",
+        read_only=True
     )
 
     class Meta:
         model = Doctor_slot
         fields = [
             "slot_id",
-            "doctor",
-            "doctor_name",
+            "doctor_first_name",
+            "doctor_last_name",
             "slot_date",
             "start_time",
             "end_time",
             "status",
         ]
-        read_only_fields = ["slot_id", "status"]
 
 
 class AppointmentSerializer(serializers.ModelSerializer):
-    slot_details = DoctorSlotSerializer(source="slot", read_only=True)
+    slot_details = DoctorSlotSerializer(
+        source="slot",
+        read_only=True
+    )
 
     class Meta:
         model = Appointment
