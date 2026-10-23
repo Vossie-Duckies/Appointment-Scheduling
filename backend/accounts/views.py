@@ -66,7 +66,7 @@ def register(request):
             "email": user.email,
             "role": user.role,
             "access": str(access),
-            "refresh": sr(refresh),
+            "refresh": str(refresh),
         },
         status=status.HTTP_201_CREATED
     )

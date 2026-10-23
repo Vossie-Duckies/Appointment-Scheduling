@@ -155,23 +155,23 @@ so this returns an array of slots that are available
 def available_slots(request):
     slots = Doctor_slot.objects.filter(
         status="AVAILABLE",
-        slot_date__gte=timezone.localtime().date()
-    ).select_related("doctor_user").order_by(
+        slot_date__gte=timezone.localdate()
+    ).select_related("doctor__user").order_by(
         "slot_date", "start_time"
     )
 
     return Response(list(slots.values(
         "slot_id",
         "doctor_id",
-        "doctor_first_name",
-        "doctor_last_name",
+        "doctor__user__first_name",
+        "doctor__user__last_name",
         "slot_date",
         "start_time",
         "end_time",
         "status",
     ))
-
-)"""
+)
+"""
 Expects this data
 {
     "slot_id": 1,
