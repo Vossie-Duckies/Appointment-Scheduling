@@ -24,3 +24,16 @@ export interface NewDoctorCredentials {
   license_no: string,
 };
 
+export interface AvailableSlots {
+  slot_id: number,
+  doctor_id: number,
+  slot_date: string,
+  start_time: string,
+  end_time: string,
+  status: string,
+};
+
+export interface AppointmenSlots {
+  slot_id: number,
+  reason: string,
+};

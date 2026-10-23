@@ -5,6 +5,7 @@ import InputField from "../Components/InputField";
 import Heading from "../Components/Heading";
 import Toast from "react-native-toast-message";
 import { loginPatient } from "../api/auth";
+import * as SecureStore from "expo-secure-store";
 
 const styles = StyleSheet.create({
   container: {
@@ -70,9 +71,18 @@ const LoginInButton: React.FC<LoginButtonProps> = ({ email, password }) => {
     if (email && password) {
       try {
         const data = await loginPatient({ email, password });
+        const userRole: string = data['role'];
+        console.log(userRole);
+        console.log(data);
 
         setTimeout(() => {
-          router.navigate('/pages/tabs')
+          if (userRole === "PATIENT") {
+            router.replace('/pages/tabs');
+          } else if (userRole === "DOCTOR" || userRole === "ADMIN") {
+            router.replace('/pages/doctorScreen/edit');
+          } else {
+            console.log("User Role Is undefinded");
+          }
         }, 2000)
 
       } catch (err: any) {

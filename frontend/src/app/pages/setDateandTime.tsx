@@ -3,15 +3,29 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import Heading from "../Components/Heading";
 import { Calendar } from "react-native-calendars";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { postPatientAppointment } from "../api/auth";
+
+// Types corresponding to what was passed from BookingNewAppointments screen
+interface RawSlot {
+  slot_id: number;
+  doctor_id: number;
+  doctor__user__first_name: string;
+  doctor__user__last_name: string;
+  slot_date: string;
+  start_time: string;
+  end_time: string;
+  status: string;
+}
 
 const styles = StyleSheet.create({
   container: {
     alignContent: "center",
     justifyContent: "center",
-    paddingHorizontal: 50,
+    paddingHorizontal: 30,
     marginTop: 30,
-    gap: 20
+    gap: 20,
+    paddingBottom: 40
   },
   secondaryText: {
     color: "#9d9d9d",
@@ -19,40 +33,64 @@ const styles = StyleSheet.create({
   },
   slotInactive: {
     backgroundColor: "#cecece",
-    width: 60,
-    height: 30,
-    alignContent: "center",
+    paddingHorizontal: 12,
+    height: 36,
+    alignItems: "center",
     justifyContent: "center",
-    paddingLeft: 10,
-    borderRadius: 4
+    borderRadius: 6
   },
   slotTextInactive: {
-    color: "black"
+    color: "black",
+    fontWeight: "500"
   },
   slotActive: {
     backgroundColor: "#d00000",
-    width: 60,
-    height: 30,
-    alignContent: "center",
+    paddingHorizontal: 12,
+    height: 36,
+    alignItems: "center",
     justifyContent: "center",
-    paddingLeft: 10,
-    borderRadius: 4
+    borderRadius: 6
   },
   slotTextActive: {
-    color: "white"
+    color: "white",
+    fontWeight: "bold"
   },
   slotContainer: {
     flexDirection: "row",
-    gap: 2,
-    marginLeft: -20
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 5
   },
   confirmButton: {
     backgroundColor: "#d00000",
     borderRadius: 10,
     height: 50,
-    alignContent: "center",
+    alignItems: "center",
     justifyContent: "center",
-    paddingLeft: 100
+    marginTop: 15
+  },
+  confirmButtonDisabled: {
+    backgroundColor: "#a0a0a0",
+    borderRadius: 10,
+    height: 50,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 15
+  },
+  confirmText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16
+  },
+  doctorHeader: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333"
+  },
+  noSlotsText: {
+    color: "#888",
+    fontStyle: "italic",
+    marginVertical: 10
   }
 });
 
@@ -61,8 +99,6 @@ interface AvailableTimeProps {
   isSelected: boolean,
   onSelect?: () => void
 }
-
-const availaleSlots: Array<string> = ['09:00', '10:00', '11:00', '13:00', '15:00']
 
 const AvailableTime: React.FC<AvailableTimeProps> = ({ time, isSelected, onSelect }) => {
 
@@ -74,68 +110,153 @@ const AvailableTime: React.FC<AvailableTimeProps> = ({ time, isSelected, onSelec
 };
 
 export default function setDateandTime() {
-  const [selectedDate, setSelectedDate] = useState<string>("");
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const router = useRouter();
 
-  const handleSelectTime = (time: string) => {
-    // Toggles deselect if already chosen, otherwise select the new slot
-    setSelectedTime((prevTime: string | null) => (prevTime === time ? null : time))
-  }
+  // 1. Retrieve passed route parameters from previous screen
+  const { doctorId, doctorName, timeSlots, rawSlots } = useLocalSearchParams<{
+    doctorId: string;
+    doctorName: string;
+    timeSlots: string;
+    rawSlots: string;
+  }>();
 
-  const handleConfirmPressed = () => {
-    router.replace("/pages/AppointmentConfirmed");
-  };
+  // Safely parse JSON strings passed from doctor selection screen
+  const parsedRawSlots: RawSlot[] = useMemo(() => {
+    try {
+      return rawSlots ? JSON.parse(rawSlots) : [];
+    } catch {
+      return [];
+    }
+  }, [rawSlots]);
+
+  const defaultTimeSlots: string[] = useMemo(() => {
+      try {
+        return timeSlots ? JSON.parse(timeSlots) : [];
+      } catch {
+        return [];
+      }
+    }, [timeSlots]);
+
+  // State for date and time selection
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedSlot, setSelectedSlot] = useState<RawSlot | null>(null);
+  const [selectedTimeDisplay, setSelectedTimeDisplay] = useState<string | null>(null);
+
+  // Filter slots matching the selected calendar date (if matching date exists in backend slots)
+  const slotsForSelectedDate = useMemo(() => {
+    if (!selectedDate) return parsedRawSlots;
+
+    const matched = parsedRawSlots.filter((slot) => slot.slot_date === selectedDate);
+    return matched.length > 0 ? matched : parsedRawSlots;
+  }, [selectedDate, parsedRawSlots]);
+
+  const handleSelectSlot = (slot: RawSlot, timeDisplay: string) => {
+      if (selectedSlot?.slot_id === slot.slot_id) {
+        setSelectedSlot(null);
+        setSelectedTimeDisplay(null);
+      } else {
+        setSelectedSlot(slot);
+        setSelectedTimeDisplay(timeDisplay);
+        // Auto-set the date if selecting from raw slot data
+        if (slot.slot_date) {
+          setSelectedDate(slot.slot_date);
+        }
+      }
+    };
+
+  const handleConfirmPressed = async (selectedSlotId: number, appointmentReason: string) => {
+    if (!selectedDate || !selectedSlot) return;
+
+    try {
+      const payload = {
+        slot_id: selectedSlot.slot_id,
+        reason: appointmentReason || "General Consultation",
+      };
+
+      const responseData = await postPatientAppointment(payload);
+      console.log("Appointment successfully booked", responseData)
+
+      router.replace("/pages/confirmScreen");
+    } catch (err: any) {
+      console.error("Booking error: ", err.message);
+    }
+    };
+
+  const isFormValid = Boolean(selectedDate && selectedSlot);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Heading text="Book New Appointment" variant="secondary" />
-      <Text style={styles.secondaryText}>Select a Date</Text>
-      <View>
-        <Calendar
-          onDayPress={(day) => {
-            setSelectedDate(day.dateString);
-          }}
-          markingType='custom'
-          markedDates={{
-            [selectedDate]: {
-              customStyles: {
-                container: {
-                  backgroundColor: "#d00000",
-                  borderRadius: 6
-                },
-                text: {
-                  color: "white"
+      <ScrollView contentContainerStyle={styles.container}>
+        <Heading text="Book New Appointment" variant="secondary" />
+
+        {doctorName ? (
+          <Text style={styles.doctorHeader}>{doctorName}</Text>
+        ) : null}
+
+        <Text style={styles.secondaryText}>Select a Date</Text>
+        <View>
+          <Calendar
+            onDayPress={(day) => {
+              setSelectedDate(day.dateString);
+              // Reset slot selection if date changes
+              setSelectedSlot(null);
+              setSelectedTimeDisplay(null);
+            }}
+            markingType="custom"
+            markedDates={{
+              [selectedDate]: {
+                customStyles: {
+                  container: {
+                    backgroundColor: "#d00000",
+                    borderRadius: 6
+                  },
+                  text: {
+                    color: "white",
+                    fontWeight: "bold"
+                  }
                 }
               }
-            }
-          }}
-          theme={{
-            textMonthFontWeight: "bold",
-
-          }}
-          renderArrow={(direction) => {
-            if (direction === 'left') return <Ionicons name="chevron-back-outline" color="#000000" size={20} />
-            if (direction === 'right') return <Ionicons name="chevron-forward-outline" color="#000000" size={20} />
-          }}
-        />
-      </View>
-      <Text>Select a Date</Text>
-      <View style={styles.slotContainer}>
-        {availaleSlots.map((slot) => (
-          <AvailableTime
-            time={slot}
-            key={slot}
-            isSelected={selectedTime === slot}
-            onSelect={() => handleSelectTime(slot)}
+            }}
+            theme={{
+              textMonthFontWeight: "bold"
+            }}
+            renderArrow={(direction) => {
+              if (direction === "left") return <Ionicons name="chevron-back-outline" color="#000000" size={20} />;
+              if (direction === "right") return <Ionicons name="chevron-forward-outline" color="#000000" size={20} />;
+            }}
           />
+        </View>
 
-        ))}
-      </View>
-      <TouchableOpacity style={styles.confirmButton} onPress={() => handleConfirmPressed()}>
-        <Text style={styles.slotTextActive}>Confirm</Text>
-      </TouchableOpacity>
-    </ScrollView>
-  )
-}
+        <Text style={styles.secondaryText}>
+          {selectedDate ? `Available Time Slots for ${selectedDate}` : "Select a Time Slot"}
+        </Text>
 
+        <View style={styles.slotContainer}>
+          {slotsForSelectedDate.length === 0 ? (
+            <Text style={styles.noSlotsText}>No slots available for this date.</Text>
+          ) : (
+            slotsForSelectedDate.map((slot) => {
+              const timeDisplay = `${slot.start_time.slice(0, 5)} - ${slot.end_time.slice(0, 5)}`;
+              const isSelected = selectedSlot?.slot_id === slot.slot_id;
+
+              return (
+                <AvailableTime
+                  time={timeDisplay}
+                  key={slot.slot_id}
+                  isSelected={isSelected}
+                  onSelect={() => handleSelectSlot(slot, timeDisplay)}
+                />
+              );
+            })
+          )}
+        </View>
+
+        <TouchableOpacity
+            style={isFormValid ? styles.confirmButton : styles.confirmButtonDisabled}
+            onPress={handleConfirmPressed}
+            disabled={!isFormValid}
+          >
+            <Text style={styles.confirmText}>Confirm Appointment</Text>
+          </TouchableOpacity>
+      </ScrollView>
+    );
+  }

@@ -6,6 +6,7 @@ import Heading from "../Components/Heading";
 import Toast from "react-native-toast-message";
 import { SelectList } from "react-native-dropdown-select-list";
 import { registerPatient } from "../api/auth";
+import * as SecureStore from "expo-secure-store";
 
 
 interface UserRoleProps {
@@ -92,17 +93,24 @@ const SignInButton: React.FC<SignInButtonProps> = (
 
     try {
       const data = await registerPatient({ first_name, last_name, email, password, role, date_of_birth, gender });
+      const userRole = data['role'];
+
       console.log(data);
       setTimeout(() => {
-        router.navigate('/pages/tabs');
+        if (userRole === "PATIENT" || userRole === "Patient") {
+          router.replace('/pages/tabs');
+          console.log("Login");
+        } else if (userRole === "DOCTOR") {
+          router.replace('/pages/tabs');
+        } else {
+          console.log('User Role is undefined');
+        }
       }, 2000)
 
     } catch (err: any) {
       console.error(err);
 
     }
-
-    router.navigate('/pages/tabs');
   };
 
   return (
@@ -123,8 +131,8 @@ export default function CreateNewAccount() {
   const [selectedGender, setSelectedGender] = useState<string>('');
 
   const userRoles: Array<UserRoleProps> = [
-    { key: '1', value: 'Patient' },
-    { key: '2', value: 'Doctor' },
+    { key: '1', value: 'PATIENT' },
+    { key: '2', value: 'DOCTOR' },
   ];
 
   const userGenders: Array<UserGenderProps> = [
@@ -240,4 +248,3 @@ export default function CreateNewAccount() {
     </ScrollView >
   )
 }
-
