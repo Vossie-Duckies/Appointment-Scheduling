@@ -1,13 +1,29 @@
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from "react-native";
 import { Link, useRouter } from 'expo-router';
 import { useState } from "react";
 import InputField from "../Components/InputField";
 import Heading from "../Components/Heading";
 import Toast from "react-native-toast-message";
+import { SelectList } from "react-native-dropdown-select-list";
+import { registerPatient } from "../api/auth";
+import * as SecureStore from "expo-secure-store";
+
+
+interface UserRoleProps {
+  key: string,
+  value: string,
+  disables?: boolean,
+};
+
+interface UserGenderProps {
+  key: string,
+  value: string
+  disables?: boolean,
+}
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 30,
+    marginTop: 5,
     alignItems: "center",
     justifyContent: "center",
     gap: 25
@@ -20,18 +36,20 @@ const styles = StyleSheet.create({
   },
   text: {
     color: "#8f8e8e",
+    marginTop: 0
   },
   textUnderline: {
     textDecorationLine: 'underline'
   },
   buttonContainer: {
-    marginTop: 30,
+    marginTop: 4,
     backgroundColor: "#d00000",
     alignItems: "center",
     paddingTop: 13,
     width: 270,
     height: 50,
-    borderRadius: 10
+    borderRadius: 10,
+    marginBottom: 0
   },
   buttonText: {
     color: "#ffffff"
@@ -45,13 +63,19 @@ interface InputData {
 };
 
 interface SignInButtonProps {
-  patientName: string,
-  patientSurname: string,
-  patientPassword: string
+  first_name: string,
+  last_name: string,
+  email: string,
+  password: string,
+  role: string,
+  date_of_birth: string,
+  gender: string,
 };
 
 {/*----- Sign-In Button -----*/ }
-const SignInButton: React.FC<SignInButtonProps> = ({ patientName, patientEmail, patientPassword }) => {
+const SignInButton: React.FC<SignInButtonProps> = (
+  { first_name, last_name, email, password, role, date_of_birth, gender }
+) => {
   const router = useRouter();
   const showToast = (issue: string) => {
     Toast.show({
@@ -59,15 +83,34 @@ const SignInButton: React.FC<SignInButtonProps> = ({ patientName, patientEmail, 
       text1: `${issue}`
     });
   }
-  const handleButtonPressed = () => {
+  const handleButtonPressed = async () => {
 
-    if (!patientName || !patientEmail || !patientPassword) {
+    if (!first_name || !last_name || !email || !password || !role || !date_of_birth || !gender) {
       const issue: string = 'Unable to log in. Please check your details and try and again';
       showToast(issue);
       return;
     }
 
-    router.navigate('/pages/tabs');
+    try {
+      const data = await registerPatient({ first_name, last_name, email, password, role, date_of_birth, gender });
+      const userRole = data['role'];
+
+      console.log(data);
+      setTimeout(() => {
+        if (userRole === "PATIENT" || userRole === "Patient") {
+          router.replace('/pages/tabs');
+          console.log("Login");
+        } else if (userRole === "DOCTOR") {
+          router.replace('/pages/tabs');
+        } else {
+          console.log('User Role is undefined');
+        }
+      }, 2000)
+
+    } catch (err: any) {
+      console.error(err);
+
+    }
   };
 
   return (
@@ -80,12 +123,33 @@ const SignInButton: React.FC<SignInButtonProps> = ({ patientName, patientEmail, 
 {/*---- Create New Account Page ----*/ }
 export default function CreateNewAccount() {
   const [patientName, setPatientName] = useState<string>('');
+  const [patientSurname, setPatientSurname] = useState<string>('');
   const [patientEmail, setPatientEmail] = useState<string>('');
   const [patientPassword, setPatientPassword] = useState<string>('');
+  const [selectedRole, setSelectedRole] = useState<string>('');
+  const [dateOfbirth, setDateOfBirth] = useState<string>('');
+  const [selectedGender, setSelectedGender] = useState<string>('');
+
+  const userRoles: Array<UserRoleProps> = [
+    { key: '1', value: 'PATIENT' },
+    { key: '2', value: 'DOCTOR' },
+  ];
+
+  const userGenders: Array<UserGenderProps> = [
+    { key: '1', value: "Male" },
+    { key: '2', value: "Female" },
+    { key: '3', value: "Prefer Not Say" },
+  ];
 
   const nameInputData: InputData = {
     placeholder: "Enter your name",
     labelName: "NAME",
+    secureText: false
+  };
+
+  const surnameInput: InputData = {
+    placeholder: "Enter your last name",
+    labelName: "SURNAME",
     secureText: false
   };
 
@@ -101,8 +165,14 @@ export default function CreateNewAccount() {
     secureText: true
   };
 
+  const dateOfBirthInputDate: InputData = {
+    placeholder: "Enter your date of birth (MM/DD/YYYY)",
+    labelName: "DATE OF BIRTH",
+    secureText: false
+  }
+
   return (
-    <View testID="child-item" style={styles.container}>
+    <ScrollView testID="child-item" contentContainerStyle={styles.container}>
       <Heading text="Create New Account" variant="primary" />
       <InputField
         placeholder={nameInputData.placeholder}
@@ -110,6 +180,13 @@ export default function CreateNewAccount() {
         secureText={nameInputData.secureText}
         value={patientName.trim()}
         onValueChange={setPatientName}
+      />
+      <InputField
+        placeholder={surnameInput.placeholder}
+        labelName={surnameInput.labelName}
+        secureText={surnameInput.secureText}
+        value={patientSurname.trim()}
+        onValueChange={setPatientSurname}
       />
       <InputField
         placeholder={emailInputData.placeholder}
@@ -125,9 +202,49 @@ export default function CreateNewAccount() {
         value={patientPassword.trim()}
         onValueChange={setPatientPassword}
       />
-      <SignInButton patientName={patientName} patientEmail={patientEmail} patientPassword={patientPassword} />
-      <Text style={styles.text}>Already Registered? <Link href="/" style={styles.textUnderline}>Log in</Link></Text>
-    </View >
+
+      <SelectList
+        setSelected={(val: string) => setSelectedRole(val)}
+        data={userRoles}
+        save="value"
+        placeholder="Select a Role"
+        maxHeight={100}
+        boxStyles={{
+          width: 270,
+          borderColor: "#d00000"
+        }}
+      />
+
+      <InputField
+        placeholder={dateOfBirthInputDate.placeholder}
+        labelName={dateOfBirthInputDate.labelName}
+        secureText={dateOfBirthInputDate.secureText}
+        value={dateOfbirth.trim()}
+        onValueChange={setDateOfBirth}
+      />
+
+      <SelectList
+        setSelected={(val: string) => setSelectedGender(val)}
+        data={userGenders}
+        save="value"
+        placeholder="Select Gender"
+        maxHeight={100}
+        boxStyles={{
+          width: 270,
+          borderColor: "#d00000"
+        }}
+      />
+
+      <SignInButton
+        first_name={patientName}
+        last_name={patientSurname}
+        email={patientEmail}
+        password={patientPassword}
+        role={selectedRole}
+        date_of_birth={dateOfbirth}
+        gender={selectedGender}
+      />
+      <Text style={styles.text}>Already Registered? <Link href="/pages/LoginPage" style={styles.textUnderline}>Log in</Link></Text>
+    </ScrollView >
   )
 }
-

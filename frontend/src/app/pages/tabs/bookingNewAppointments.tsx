@@ -1,21 +1,52 @@
 import { View, Text, TouchableOpacity, FlatList, StyleSheet } from "react-native";
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "expo-router";
 import Heading from "@/app/Components/Heading";
 import Avatar from "@/app/Components/Avatar";
 import { handleImageLoaded } from "expo-image/build/observe";
+import { getAvailableSlots } from "@/app/api/auth";
 
-interface DoctorCardKeys {
-  id: number,
-  doctorName: string,
-  doctorSurname: string,
-  slotsAvailable: number,
-  imageURL: string,
-};
+// 1. Raw item returned from backend
+export interface RawSlotFromBackend {
+  slot_id: number;
+  doctor_id: number;
+  doctor__user__first_name: string;
+  doctor__user__last_name: string;
+  slot_date: string;
+  start_time: string;
+  end_time: string;
+  status: string;
+}
 
-interface DoctorCardProps extends DoctorCardKeys {
-  isSelected: boolean,
-  onSelect: () => void
+// 2. Transformed object: Doctors grouped with their slots & available times
+export interface GroupedDoctor {
+  doctor_id: number;
+  first_name: string;
+  last_name: string;
+  slots: RawSlotFromBackend[];
+  timeSlots: string[]; // e.g. ["09:00 - 09:30", "10:00 - 10:30"]
+  imageURL?: string;
+}
+
+interface DoctorCardProps {
+  doctor_id: number;
+  first_name: string;
+  last_name: string;
+  slotsAvailable: number;
+  imageURL?: string;
+  isSelected: boolean;
+  onSelect: () => void;
+}
+
+interface AvailableSlots {
+  slot_id: number,
+  doctor_id: number,
+  slot_date: string,
+  start_time: string,
+  end_time: string,
+  status: string,
+  doctor_first_name: string,
+  doctor_last_name: string,
 };
 
 const styles = StyleSheet.create({
@@ -29,14 +60,24 @@ const styles = StyleSheet.create({
   buttonContainer: {
     backgroundColor: "#d00000",
     alignItems: "center",
-    paddingTop: 13,
+    justifyContent: "center",
+    width: 270,
+    height: 50,
+    borderRadius: 10,
+    marginLeft: -25
+  },
+  buttonDisabled: {
+    backgroundColor: "#a0a0a0",
+    alignItems: "center",
+    justifyContent: "center",
     width: 270,
     height: 50,
     borderRadius: 10,
     marginLeft: -25
   },
   buttonText: {
-    color: "#ffffff"
+    color: "#ffffff",
+    fontWeight: "bold"
   },
   secondary: {
     color: "#9d9d9d",
@@ -83,74 +124,161 @@ const styles = StyleSheet.create({
   }
 });
 
-const doctors: DoctorCardKeys[] = [
-  { id: 1, doctorName: "Dr. Sarai", doctorSurname: "Kelly", slotsAvailable: 5, imageURL: "https://images.peopleimages.com/picture/202307/2716283-man-doctor-portrait-and-thumbs-up-with-smile-from-healthcare-and-medical-work-in-studio.-isolated-white-background-and-happy-male-professional-with-emoji-and-yes-hand-gesture-for-success-and-like-fit_400_400.jpg" },
-  { id: 2, doctorName: "Dr. Remy", doctorSurname: "Novak", slotsAvailable: 7, imageURL: "https://images.peopleimages.com/picture/202305/2702046-tablet-doctor-portrait-and-woman-isolated-on-a-white-background-of-happy-healthcare-research-or-telehealth-services.-face-of-african-medical-person-typing-on-digital-tech-and-paperless-app-in-studio-fit_400_400.jpg" },
-  { id: 3, doctorName: "Dr. Siya", doctorSurname: "Cele", slotsAvailable: 3, imageURL: "https://images.peopleimages.com/picture/202305/2702046-tablet-doctor-portrait-and-woman-isolated-on-a-white-background-of-happy-healthcare-research-or-telehealth-services.-face-of-african-medical-person-typing-on-digital-tech-and-paperless-app-in-studio-fit_400_400.jpg" }
-];
-
 const DoctorCard: React.FC<DoctorCardProps> = ({
-  doctorName,
-  doctorSurname,
+  first_name,
+  last_name,
   slotsAvailable,
   imageURL,
   isSelected,
-  onSelect }) => {
-
+  onSelect
+}) => {
   return (
-    <TouchableOpacity style={isSelected ? styles.activeDoctorCard : styles.doctorCard} onPress={onSelect}>
+    <TouchableOpacity
+      style={isSelected ? styles.activeDoctorCard : styles.doctorCard}
+      onPress={onSelect}
+    >
       <View style={styles.imageContainer}>
         <Avatar url={imageURL} />
       </View>
       <View style={styles.textContainer}>
-        <Text style={styles.primaryText}>{doctorName} {doctorSurname}</Text>
-        <Text style={styles.secondaryText}>{slotsAvailable} available this week</Text>
+        <Text style={styles.primaryText}>Dr. {first_name} {last_name}</Text>
+        <Text style={styles.secondaryText}>
+          {slotsAvailable} slot{slotsAvailable === 1 ? '' : 's'} available
+        </Text>
       </View>
     </TouchableOpacity>
-  )
+  );
 };
 
-const NextButton = () => {
+interface NextButtonProps {
+  selectedDoctor: GroupedDoctor | null;
+}
+
+const NextButton: React.FC<NextButtonProps> = ({ selectedDoctor }) => {
   const router = useRouter();
-  const handelPressed = () => {
-    router.replace("/pages/setDateandTime");
+
+  const handlePressed = () => {
+    if (!selectedDoctor) return;
+
+    // Navigate to setDateandTime screen, passing doctor details & times array
+    router.push({
+      pathname: "/pages/setDateandTime",
+      params: {
+        doctorId: selectedDoctor.doctor_id,
+        doctorName: `Dr. ${selectedDoctor.first_name} ${selectedDoctor.last_name}`,
+        timeSlots: JSON.stringify(selectedDoctor.timeSlots), // Array of time strings
+        rawSlots: JSON.stringify(selectedDoctor.slots)       // Complete slot objects
+      }
+    });
   };
 
   return (
-    <TouchableOpacity style={styles.buttonContainer} onPress={handelPressed}>
+    <TouchableOpacity
+      style={selectedDoctor ? styles.buttonContainer : styles.buttonDisabled}
+      onPress={handlePressed}
+      disabled={!selectedDoctor}
+    >
       <Text style={styles.buttonText}>Next</Text>
     </TouchableOpacity>
-  )
+  );
 };
 
 export default function BookingNewAppointments() {
   const [selectedDoctorId, setSelectedDoctorId] = useState<number | null>(null);
+  const [rawSlots, setRawSlots] = useState<RawSlotFromBackend[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
   const handleSelectDoctor = (id: number) => {
-    // Tapping the same the doctor deselects them; tapping a new doctor selects them
-    setSelectedDoctorId((prevId: number | null) => (prevId === id ? null : id))
+    // Tapping the active doctor deselects them; tapping another selects them
+    setSelectedDoctorId((prevId) => (prevId === id ? null : id));
   };
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchAvailableSlots() {
+      try {
+        const data = await getAvailableSlots();
+        if (isMounted && Array.isArray(data)) {
+          setRawSlots(data);
+        }
+      } catch (err: any) {
+        console.error("Failed to fetch available doctors: ", err);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+    fetchAvailableSlots();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Group raw slots by doctor_id
+  const groupedDoctors = useMemo(() => {
+    const map = new Map<number, GroupedDoctor>();
+
+    rawSlots.forEach((slot) => {
+      // Format start and end time (e.g. "09:00:00" -> "09:00")
+      const formattedStart = slot.start_time.slice(0, 5);
+      const formattedEnd = slot.end_time.slice(0, 5);
+      const timeRange = `${formattedStart} - ${formattedEnd}`;
+
+      if (!map.has(slot.doctor_id)) {
+        map.set(slot.doctor_id, {
+          doctor_id: slot.doctor_id,
+          first_name: slot.doctor__user__first_name,
+          last_name: slot.doctor__user__last_name,
+          slots: [slot],
+          timeSlots: [timeRange],
+        });
+      } else {
+        const existing = map.get(slot.doctor_id)!;
+        existing.slots.push(slot);
+        existing.timeSlots.push(timeRange);
+      }
+    });
+
+    return Array.from(map.values());
+  }, [rawSlots]);
+
+  // Retrieve the currently selected doctor object
+  const selectedDoctor = useMemo(() => {
+    return groupedDoctors.find((doc) => doc.doctor_id === selectedDoctorId) || null;
+  }, [groupedDoctors, selectedDoctorId]);
 
   return (
     <View style={styles.container}>
-      <View >
+      <View>
         <Heading text="Book New Appointment" variant="secondary" />
       </View>
       <Text style={styles.secondary}>Select a Doctor</Text>
-      <FlatList
-        style={styles.body}
-        data={doctors}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <DoctorCard
-          doctorName={item.doctorName}
-          doctorSurname={item.doctorSurname}
-          slotsAvailable={item.slotsAvailable}
-          imageURL={item.imageURL}
-          isSelected={selectedDoctorId === item.id}
-          onSelect={() => handleSelectDoctor(item.id)}
-        />}
-      />
-      <NextButton />
-    </View>
-  )
-}
 
+      {isLoading ? (
+        <Text>Loading...</Text>
+      ) : groupedDoctors.length === 0 ? (
+        <Text>No Available Doctors Found</Text>
+      ) : (
+        <FlatList
+          style={styles.body}
+          data={groupedDoctors}
+          keyExtractor={(item) => item.doctor_id.toString()}
+          renderItem={({ item }) => (
+            <DoctorCard
+              doctor_id={item.doctor_id}
+              first_name={item.first_name}
+              last_name={item.last_name}
+              slotsAvailable={item.timeSlots.length}
+              imageURL={item.imageURL}
+              isSelected={selectedDoctorId === item.doctor_id}
+              onSelect={() => handleSelectDoctor(item.doctor_id)}
+            />
+          )}
+        />
+      )}
+
+      <NextButton selectedDoctor={selectedDoctor} />
+    </View>
+  );
+}
