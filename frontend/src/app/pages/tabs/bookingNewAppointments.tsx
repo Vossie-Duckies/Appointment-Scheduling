@@ -1,10 +1,13 @@
-import { View, Text, TouchableOpacity, FlatList, StyleSheet } from "react-native";
-import React, { useState, useEffect, useMemo } from "react";
-import { useRouter } from "expo-router";
-import Heading from "@/app/Components/Heading";
 import Avatar from "@/app/Components/Avatar";
-import { handleImageLoaded } from "expo-image/build/observe";
+import Heading from "@/app/Components/Heading";
 import { getAvailableSlots } from "@/app/api/auth";
+import LoadError from "@/shared/LoadError";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react";
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useDoctorPhotos } from "@/shared/doctorPhotos";
+import { screenColumn } from "@/shared/layout";
+
 
 // 1. Raw item returned from backend
 export interface RawSlotFromBackend {
@@ -50,77 +53,66 @@ interface AvailableSlots {
 };
 
 const styles = StyleSheet.create({
+
   container: {
+    ...screenColumn,
+    flex: 1,
     marginTop: 30,
-    alignContent: "center",
-    justifyContent: "center",
-    gap: 25,
-    paddingHorizontal: 75
+    paddingBottom: 16,
+    gap: 20,
+  },
+ 
+  listArea: {
+    flex: 1,
   },
   buttonContainer: {
     backgroundColor: "#d00000",
     alignItems: "center",
     justifyContent: "center",
-    width: 270,
+    width: "100%",
     height: 50,
     borderRadius: 10,
-    marginLeft: -25
   },
   buttonDisabled: {
     backgroundColor: "#a0a0a0",
-    alignItems: "center",
-    justifyContent: "center",
-    width: 270,
-    height: 50,
-    borderRadius: 10,
-    marginLeft: -25
   },
   buttonText: {
     color: "#ffffff",
     fontWeight: "bold"
   },
   secondary: {
-    color: "#9d9d9d",
+    color: "#6b6b6b",
   },
   body: {
-    height: 320,
-    width: 275,
-    marginLeft: -21
+    flex: 1,
   },
   doctorCard: {
+    width: "100%",
+    minHeight: 66,
     backgroundColor: "#ececec",
-    height: 60,
-    width: 270,
-    justifyContent: "center",
-    marginVertical: 8,
-    flexDirection: "row",
-    gap: 6
-  },
-  activeDoctorCard: {
-    backgroundColor: "#ececec",
-    height: 60,
-    width: 270,
-    justifyContent: "center",
-    marginVertical: 8,
+    borderRadius: 8,
     borderWidth: 2,
-    borderColor: "#d00000",
+    borderColor: "transparent",
+    marginVertical: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     flexDirection: "row",
-    gap: 6
+    alignItems: "center",
+    gap: 12
+  },
+  activeDoctorCard: {  
+    borderColor: "#d00000",
   },
   primaryText: {
     fontWeight: "bold",
     fontSize: 18
   },
   secondaryText: {
-    fontSize: 12
-  },
-  imageContainer: {
-    marginLeft: -70,
-    marginTop: 6
+     fontSize: 13,
+    color: "#333333"
   },
   textContainer: {
-    marginTop: 6,
-    marginLeft: 6
+    flex: 1
   }
 });
 
@@ -134,14 +126,14 @@ const DoctorCard: React.FC<DoctorCardProps> = ({
 }) => {
   return (
     <TouchableOpacity
-      style={isSelected ? styles.activeDoctorCard : styles.doctorCard}
+      style={[styles.doctorCard, isSelected && styles.activeDoctorCard]}
       onPress={onSelect}
+      accessibilityRole="button"
+      accessibilityState={{ selected: isSelected }}
     >
-      <View style={styles.imageContainer}>
-        <Avatar url={imageURL} />
-      </View>
+        <Avatar url={imageURL} name={`${first_name} ${last_name}`} />
       <View style={styles.textContainer}>
-        <Text style={styles.primaryText}>Dr. {first_name} {last_name}</Text>
+        <Text style={styles.primaryText} numberOfLines={2}>Dr. {first_name} {last_name}</Text>
         <Text style={styles.secondaryText}>
           {slotsAvailable} slot{slotsAvailable === 1 ? '' : 's'} available
         </Text>
@@ -174,9 +166,10 @@ const NextButton: React.FC<NextButtonProps> = ({ selectedDoctor }) => {
 
   return (
     <TouchableOpacity
-      style={selectedDoctor ? styles.buttonContainer : styles.buttonDisabled}
+      style={[styles.buttonContainer, !selectedDoctor && styles.buttonDisabled]}
       onPress={handlePressed}
       disabled={!selectedDoctor}
+      accessibilityRole="button"
     >
       <Text style={styles.buttonText}>Next</Text>
     </TouchableOpacity>
@@ -187,33 +180,33 @@ export default function BookingNewAppointments() {
   const [selectedDoctorId, setSelectedDoctorId] = useState<number | null>(null);
   const [rawSlots, setRawSlots] = useState<RawSlotFromBackend[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const handleSelectDoctor = (id: number) => {
     // Tapping the active doctor deselects them; tapping another selects them
     setSelectedDoctorId((prevId) => (prevId === id ? null : id));
   };
 
-  useEffect(() => {
-    let isMounted = true;
-    async function fetchAvailableSlots() {
-      try {
-        const data = await getAvailableSlots();
-        if (isMounted && Array.isArray(data)) {
-          setRawSlots(data);
-        }
-      } catch (err: any) {
-        console.error("Failed to fetch available doctors: ", err);
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
+  const fetchAvailableSlots = useCallback(async () => {
+    try {
+      const data: any = await getAvailableSlots();
+      setRawSlots(Array.isArray(data) ? data : []);
+      setLoadError(null);
+    } catch (err: any) {
+      // Used to fall through to "No Available Doctors Found" when offline.
+      setLoadError(err?.message || "Couldn't load available doctors.");
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
     }
-    fetchAvailableSlots();
-    return () => {
-      isMounted = false;
-    };
   }, []);
+
+  // Reloads whenever the tab is opened, so changes made elsewhere show up.
+  // (After a booking, the slot counts used to stay out of date.)
+  useFocusEffect(useCallback(() => {
+    fetchAvailableSlots();
+  }, [fetchAvailableSlots]));
 
   // Group raw slots by doctor_id
   const groupedDoctors = useMemo(() => {
@@ -243,40 +236,57 @@ export default function BookingNewAppointments() {
     return Array.from(map.values());
   }, [rawSlots]);
 
+  const photos = useDoctorPhotos(groupedDoctors.map((doc) => doc.doctor_id));
+
+  
   // Retrieve the currently selected doctor object
   const selectedDoctor = useMemo(() => {
     return groupedDoctors.find((doc) => doc.doctor_id === selectedDoctorId) || null;
   }, [groupedDoctors, selectedDoctorId]);
 
-  return (
+   return (
     <View style={styles.container}>
       <View>
         <Heading text="Book New Appointment" variant="secondary" />
       </View>
       <Text style={styles.secondary}>Select a Doctor</Text>
 
-      {isLoading ? (
-        <Text>Loading...</Text>
-      ) : groupedDoctors.length === 0 ? (
-        <Text>No Available Doctors Found</Text>
-      ) : (
-        <FlatList
-          style={styles.body}
-          data={groupedDoctors}
-          keyExtractor={(item) => item.doctor_id.toString()}
-          renderItem={({ item }) => (
-            <DoctorCard
-              doctor_id={item.doctor_id}
-              first_name={item.first_name}
-              last_name={item.last_name}
-              slotsAvailable={item.timeSlots.length}
-              imageURL={item.imageURL}
-              isSelected={selectedDoctorId === item.doctor_id}
-              onSelect={() => handleSelectDoctor(item.doctor_id)}
-            />
-          )}
-        />
-      )}
+      <View style={styles.listArea}>
+        {isLoading ? (
+          <Text>Loading...</Text>
+        ) : loadError ? (
+          <LoadError
+            message={loadError}
+            onRetry={() => {
+              setIsLoading(true);
+              fetchAvailableSlots();
+            }}
+          />
+        ) : (
+          <FlatList
+            style={styles.body}
+            data={groupedDoctors}
+            keyExtractor={(item) => item.doctor_id.toString()}
+            refreshing={isRefreshing}
+            onRefresh={() => {
+              setIsRefreshing(true);
+              fetchAvailableSlots();
+            }}
+            ListEmptyComponent={<Text>No doctors have open slots right now. Pull down to refresh.</Text>}
+            renderItem={({ item }) => (
+              <DoctorCard
+                doctor_id={item.doctor_id}
+                first_name={item.first_name}
+                last_name={item.last_name}
+                slotsAvailable={item.timeSlots.length}
+                imageURL={photos[item.doctor_id]}
+                isSelected={selectedDoctorId === item.doctor_id}
+                onSelect={() => handleSelectDoctor(item.doctor_id)}
+              />
+            )}
+          />
+        )}
+      </View>
 
       <NextButton selectedDoctor={selectedDoctor} />
     </View>

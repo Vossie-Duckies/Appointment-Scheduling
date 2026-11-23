@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from appointment_backend.models import Notification
-from django.core.mail import send_mail
+from .emails import send_email
 
 class NotificationStrategy(ABC):
     @abstractmethod
@@ -17,13 +17,10 @@ class InAppNotificationStrategy(NotificationStrategy):
         )
 
 class EmailNotificationStrategy(NotificationStrategy):
+    # Sent once the change is saved, and a mail problem never stops the
+    # request (see emails.py).
     def send (self, user, appointment, message):
-        send_mail(
-            subject = "Appointment Notification",
-            message = message,
-            from_email = None,
-            recipient_list=[user.email],
-        )
+        send_email(user, "Message about your appointment", message)
 
 class SMSNotificationStrategy(NotificationStrategy):
     def send(self, user, appointment, message):

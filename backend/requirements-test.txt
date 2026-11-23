@@ -1,0 +1,10 @@
+# Everything needed to run the API and its automated tests:
+#   pip install -r requirements-test.txt
+#   python manage.py test
+-r ../requirements_backend.txt
+# Login tokens. Missing from requirements_backend.txt, so the server failed with
+# "No module named 'rest_framework_simplejwt'". Same version as required.txt.
+djangorestframework-simplejwt==5.5.1
+# Profile photos (accounts/photos.py). Also listed in requirements_backend.txt.
+pillow>=11.0
+hypothesis

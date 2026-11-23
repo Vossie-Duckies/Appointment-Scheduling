@@ -1,0 +1,23 @@
+# Keeps the WaitLess API running on the server, and starts it again after a
+# crash or a reboot. Install it with (see DEPLOY.md, step 9):
+#   sudo cp deploy/waitless.service /etc/systemd/system/waitless.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now waitless
+#
+# gunicorn only listens on 127.0.0.1, so it can't be reached from the internet
+# directly. nginx (deploy/nginx-waitless.conf) passes requests on to it.
+# Settings such as the secret key and the email password come from backend/.env.
+
+[Unit]
+Description=WaitLess API (Django with gunicorn)
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/waitless/backend
+ExecStart=/home/ubuntu/venv/bin/gunicorn backend.wsgi:application --bind 127.0.0.1:8000 --workers 3 --access-logfile - --error-logfile -
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

@@ -1,17 +1,30 @@
-from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
-from datetime import date, time
 from accounts.models import Doctor
 from accounts.permissions import IsDoctorRole
 from accounts.models import Patient
 from .models import Doctor_slot, Appointment
+from .schedule import without_time_off
 from .serializers import  AppointmentSerializer
-from .services import book_appointment, cancel_appointment, complete_appointment, mark_no_show
+from .services import (
+    book_appointment,
+    cancel_appointment,
+    complete_appointment,
+    mark_no_show,
+    reschedule_appointment,
+)
+
+
+def _doctor_for(user):
+    try:
+        return Doctor.objects.get(user=user)
+    except Doctor.DoesNotExist:
+        raise PermissionDenied("Your account has no doctor profile.")
 
 
 """"
@@ -98,7 +111,9 @@ It returns the following
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, IsDoctorRole])
 def doctor_appointments(request):
-    doctor = Doctor.objects.get(user=request.user)
+    # A DOCTOR-role user without a Doctor profile used to crash this view
+    # with HTTP 500; it now gets a clear HTTP 403.
+    doctor = _doctor_for(request.user)
 
     appointments = (
         Appointment.objects
@@ -148,15 +163,19 @@ It returns this from the database
         }
     ]
 }
-so this returns an array of slots that are available 
+so this returns an array of slots that are available
+Slots earlier today that have already started are left out, because they
+can no longer be booked. So are slots on days the doctor has time off.
 """
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def available_slots(request):
-    slots = Doctor_slot.objects.filter(
+    now = timezone.localtime()
+    slots = without_time_off(Doctor_slot.objects.filter(
+        Q(slot_date__gt=now.date())
+        | Q(slot_date=now.date(), start_time__gt=now.time()),
         status="AVAILABLE",
-        slot_date__gte=timezone.localdate()
-    ).select_related("doctor__user").order_by(
+    )).select_related("doctor__user").order_by(
         "slot_date", "start_time"
     )
 
@@ -171,6 +190,7 @@ def available_slots(request):
         "status",
     ))
 )
+MAX_REASON_LENGTH = 200
 """
 Expects this data
 {
@@ -186,10 +206,26 @@ def book_appointment_view(request):
     except Patient.DoesNotExist:
         raise PermissionDenied("Your account has no patient profile.")
 
+    # A missing or non-numeric slot_id used to raise KeyError/ValueError (HTTP 500).
+    try:
+        slot_id = int(request.data.get("slot_id"))
+    except (TypeError, ValueError):
+        return Response(
+            {"message": "Choose a time slot to book."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    reason = str(request.data.get("reason") or "").strip()
+    if len(reason) > MAX_REASON_LENGTH:
+        return Response(
+            {"message": f"Keep the reason to {MAX_REASON_LENGTH} characters or fewer."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    reason = reason or "General Consultation"
+
     appointment = book_appointment(
         patient=patient,
-        slot_id=request.data["slot_id"],
-        reason=request.data["reason"],
+        slot_id=slot_id,
+        reason=reason,
     )
 
     return Response(
@@ -265,75 +301,45 @@ def my_appointments(request):
     serializer = AppointmentSerializer(appointments, many=True)
     return Response(serializer.data)
 
+# Adding a slot (POST /api/appointments/doctor/slots/) moved to
+# schedule_views.py with the other schedule endpoints. Its checks are unchanged;
+# it now also refuses overlapping slots, times that have passed and time off.
+
 """
-This creates the doctor slot and needs this data
+Lets the doctor move a booked appointment (used by the app's Update screen,
+which previously showed "Appointment Updated" without saving anything).
+Expects either an open slot from the doctor's schedule (what the app sends):
 {
-    "slot_date": "2026-10-15",
-    "start_time": "09:00",
-    "end_time": "09:30"
+    "slot_id": 57
+}
+which books that slot and opens the old one again, or a time with no slot:
+{
+    "slot_date": "2026-11-20",
+    "start_time": "09:00"
 }
 """
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, IsDoctorRole])
-def create_doctor_slot(request):
-    slot_date = request.data.get("slot_date")
-    start_time = request.data.get("start_time")
-    end_time = request.data.get("end_time")
+def reschedule_appointment_view(request, appointment_id):
+    doctor = _doctor_for(request.user)
 
-    if not all([slot_date, start_time, end_time]):
-        return Response(
-            {"error": "slot_date, start_time and end_time are required."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-    
-    try:
-        slot_date = date.fromisoformat(slot_date)
-        start_time = time.fromisoformat(start_time)
-        end_time = time.fromisoformat(end_time)
-    except (ValueError, TypeError):
-        return Response(
-            {"error": "Use YYYY-MM-DD for the date and HH:MM for times."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-    
-    if slot_date < timezone.localdate():
-        return Response(
-            {"error": "The slot date cannot be in the past."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-    if end_time <= start_time:
-        return Response(
-            {"error": "The end time must be later than the start time."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-    try:
-        doctor = Doctor.objects.get(user=request.user)
-    except Doctor.DoesNotExist:
-        raise PermissionDenied("Your account has no doctor profile.")
-    try:
-        with transaction.atomic():
-            slot = Doctor_slot.objects.create(
-                doctor=doctor,
-                slot_date=slot_date,
-                start_time=start_time,
-                end_time=end_time,
-                status="AVAILABLE",
-            )
-    except IntegrityError:
-        return Response(
-            {"error": "This slot conflicts with a database constraint."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    appointment = reschedule_appointment(
+        doctor=doctor,
+        appointment_id=appointment_id,
+        slot_date=request.data.get("slot_date"),
+        start_time=request.data.get("start_time"),
+        slot_id=request.data.get("slot_id"),
+    )
+    slot = appointment.slot
 
     return Response(
         {
-            "message": "Appointment slot created successfully.",
-            "slot_id": slot.slot_id,
+            "message": "Appointment rescheduled.",
+            "appointment_id": appointment.appointment_id,
             "slot_date": slot.slot_date,
             "start_time": slot.start_time,
             "end_time": slot.end_time,
-            "status": slot.status,
+            "status": appointment.status,
         },
-        status=status.HTTP_201_CREATED,
+        status=status.HTTP_200_OK,
     )
-

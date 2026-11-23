@@ -7,11 +7,14 @@ interface HeadingProps {
   variant: headingVariant
 };
 
+const HEADING_MAX_FONT_SCALE = 1.3;
 const styles = StyleSheet.create({
   primary: {
     fontSize: 30,
     fontWeight: 'bold',
-    width: 200,
+    alignSelf: "center",
+    minWidth: 200,
+    maxWidth: "100%",
     textAlign: "center",
     color: '#d00000',
     marginTop: 20,
@@ -22,7 +25,9 @@ const styles = StyleSheet.create({
   secondary: {
     fontSize: 24,
     fontWeight: 'bold',
-    width: 200,
+    alignSelf: "center",
+    minWidth: 200,
+    maxWidth: "100%",
     textAlign: "center",
     color: '#000000',
     marginTop: 20,
@@ -38,10 +43,10 @@ const Heading: React.FC<HeadingProps> = ({ text, variant }) => {
     is by every other heading.
   */}
   if (variant === "primary") {
-    return <Text accessibilityRole="header" style={styles.primary}>{text}</Text>
+    return <Text accessibilityRole="header" maxFontSizeMultiplier={HEADING_MAX_FONT_SCALE} style={styles.primary}>{text}</Text>
   }
   else if (variant === "secondary") {
-    return <Text accessibilityRole="header" style={styles.secondary}>{text}</Text>
+    return <Text accessibilityRole="header" maxFontSizeMultiplier={HEADING_MAX_FONT_SCALE} style={styles.secondary}>{text}</Text>
   }
   else {
     return <Text>{text}</Text>

@@ -1,9 +1,9 @@
 import { PatientCard } from '@/app/Components/patientCards';
-import { appointment } from '@/app/data/appointmentData';
 import { getDoctorAppointments } from '@/app/api/auth';
 import { styles } from '@/app/Styles/global';
-import { router } from 'expo-router';
-import { useState, useEffect } from 'react';
+import LoadError from '@/shared/LoadError';
+import { router, useFocusEffect } from 'expo-router';
+import { useState, useCallback, useMemo } from 'react';
 import { FlatList, Pressable, Text, View } from 'react-native';
 
 interface BackendAppointment {
@@ -17,42 +17,44 @@ interface BackendAppointment {
   status: string;
 }
 
-// i  implment the edit screen here
-export default function EditScreen() {  // we use default function  , for the expo router to know that this file is a screen
-  // we use UseState to make the screen remeber a value and also update this value when the screen will change
-  // it is like a small box where  the application will store the screen data like the cards selected for example
-  const [selectedId, setSelectedId] = useState<string | null>(null); // SelectedID is the actual information inside that box
-  const [appointments, setAppointments] = useState<any[]>([]);
+// UPDATE tab: pick a booked appointment to reschedule.
+export default function RescheduleListScreen() {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [appointments, setAppointments] = useState<BackendAppointment[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const Selection = selectedId !== null;
 
-  useEffect(() => {
-    let isMounted = true;
-    async function loadAppointments() {
-      try {
-        const data = await getDoctorAppointments();
-
-        if (isMounted && Array.isArray(data)) {
-          setAppointments(data);
-        }
-      } catch (err: any) {
-        console.error("Failed to load appointments: ", err);
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
+  const loadAppointments = useCallback(async () => {
+    try {
+      const data = await getDoctorAppointments();
+      setAppointments(Array.isArray(data) ? data : []);
+      setLoadError(null);
+    } catch (err: any) {
+      setLoadError(err?.message || "Couldn't load your appointments.");
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
     }
+  }, []);
 
+  // Reloads whenever the tab is opened, so changes made elsewhere show up.
+  useFocusEffect(useCallback(() => {
     loadAppointments();
+  }, [loadAppointments]));
 
-    return () => { isMounted = false; };
-
-  }, [])
+  // Only booked appointments can be moved (the server refuses the others).
+  const bookedAppointments = useMemo(
+    () => appointments.filter((item) => item.status === 'BOOKED'),
+    [appointments]
+  );
 
   function handleClick() {
       if (selectedId === null) return;
 
       // Find the full appointment object corresponding to the selected ID
-      const selectedAppointment = appointments.find(
+      const selectedAppointment = bookedAppointments.find(
         (item) => item.appointment_id.toString() === selectedId
       );
 
@@ -67,17 +69,20 @@ export default function EditScreen() {  // we use default function  , for the ex
 
   return (
     <View style={styles.container}>
-          <Text style={styles.heading}>Edit Current Appointment</Text>
+          <Text style={styles.heading}>Reschedule an Appointment</Text>
 
           {isLoading ? (
             <Text style={{ textAlign: 'center', marginTop: 20 }}>Loading appointments...</Text>
-          ) : appointments.length === 0 ? (
-            <Text style={{ textAlign: 'center', marginTop: 20 }}>No appointments found.</Text>
+          ) : loadError ? (
+            <LoadError message={loadError} onRetry={() => { setIsLoading(true); loadAppointments(); }} />
           ) : (
             <FlatList
-              data={appointments}
+              data={bookedAppointments}
               extraData={selectedId}
               keyExtractor={(item) => item.appointment_id.toString()}
+              refreshing={isRefreshing}
+              onRefresh={() => { setIsRefreshing(true); loadAppointments(); }}
+              ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 20 }}>No booked appointments to reschedule.</Text>}
               renderItem={({ item }) => {
                 // Split backend's single "patient_name" into name and surname parts
                 const nameParts = item.patient_name ? item.patient_name.split(' ') : ["Unknown", ""];
@@ -105,6 +110,7 @@ export default function EditScreen() {  // we use default function  , for the ex
             style={[styles.button, !Selection && styles.buttonFaded]}
             disabled={!Selection}
             onPress={handleClick}
+            accessibilityRole="button"
           >
             <Text style={styles.buttonText}>Next</Text>
           </Pressable>

@@ -1,6 +1,6 @@
 from django.db import models
 from accounts.models import User, Patient, Doctor
-# Create your models here.
+
 
 class Doctor_slot(models.Model):
     STATUSES =(
@@ -45,3 +45,24 @@ class Appointment(models.Model):
     updated_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS, default="BOOKED")
     reason = models.TextField()
+
+
+class DoctorTimeOff(models.Model):
+    # Whole days a doctor is away (start_date to end_date, both included).
+    # Slots on these days stay in the database but are hidden from patients
+    # and cannot be booked, so removing the time off makes them bookable again.
+    time_off_id = models.BigAutoField(primary_key=True)
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name="time_off")
+    start_date = models.DateField()
+    end_date = models.DateField()
+    reason = models.CharField(max_length=100, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["start_date"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(end_date__gte=models.F("start_date")),
+                name="check_time_off_dates",
+            ),
+        ]

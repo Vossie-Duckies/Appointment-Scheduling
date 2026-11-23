@@ -2,11 +2,14 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from django.contrib.auth import authenticate, login as auth_login
-from django.db import transaction
+from django.contrib.auth import authenticate
+from django.db import IntegrityError, transaction
 from .models import User, Doctor, Patient
 from .permissions import IsAdminRole
+from .validators import first_error, validate_registration
 from rest_framework_simplejwt.tokens import RefreshToken
+
+DUPLICATE_EMAIL_MESSAGE = "An account with this email already exists. Try logging in instead."
 
 # Create your views here.
 
@@ -27,35 +30,49 @@ type of data expected from front end and more can be sent if its patient
     "date_of_birth": "2000-05-15",
     "gender": "Female"
 }
+
+Public registration creates PATIENT accounts only. Doctors are created by an
+admin through create_doctor below, so a request with role DOCTOR or ADMIN is
+rejected with HTTP 400 (it used to create an ADMIN account for anyone who
+asked). Invalid or missing fields now return HTTP 400 with a readable
+"message" instead of crashing with HTTP 500.
 """
 @api_view(["POST"])
-@transaction.atomic
 def register(request):
-    first_name = request.data["first_name"]
-    last_name = request.data["last_name"]
-    email = request.data["email"]
-    password = request.data["password"]
-    role = request.data["role"]
-
-    if role == "PATIENT":
-        date_of_birth = request.data["date_of_birth"]
-        gender = request.data["gender"]
-
-    user = User.objects.create_user(
-        email=email,
-        password=password,
-        first_name=first_name,
-        last_name=last_name,
-        role=role
-    )
-
-
-    if user.role == "PATIENT":
-        Patient.objects.create(
-            user=user,
-            date_of_birth=date_of_birth,
-            gender=gender
+    cleaned, errors = validate_registration(request.data)
+    if errors:
+        return Response(
+            {"message": first_error(errors), "errors": errors},
+            status=status.HTTP_400_BAD_REQUEST,
         )
+
+    if User.objects.filter(email__iexact=cleaned["email"]).exists():
+        return Response(
+            {"message": DUPLICATE_EMAIL_MESSAGE, "errors": {"email": DUPLICATE_EMAIL_MESSAGE}},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        with transaction.atomic():
+            user = User.objects.create_user(
+                email=cleaned["email"],
+                password=cleaned["password"],
+                first_name=cleaned["first_name"],
+                last_name=cleaned["last_name"],
+                role="PATIENT",
+            )
+            Patient.objects.create(
+                user=user,
+                date_of_birth=cleaned["date_of_birth"],
+                gender=cleaned["gender"],
+            )
+    except IntegrityError:
+        # Two sign-ups with the same email at the same moment.
+        return Response(
+            {"message": DUPLICATE_EMAIL_MESSAGE, "errors": {"email": DUPLICATE_EMAIL_MESSAGE}},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     refresh = RefreshToken.for_user(user)
     access = refresh.access_token
 
@@ -81,10 +98,23 @@ Expects this json data
 """
 @api_view(["POST"])
 def login(request):
-    email = request.data["email"]
-    password = request.data["password"]
-    user = authenticate(request, username=email, password = password)
-    
+    email = str(request.data.get("email") or "").strip()
+    password = request.data.get("password") or ""
+
+    if not email or not password:
+        return Response(
+            {"message": "Email and password are required."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    user = authenticate(request, username=email, password=password)
+    if user is None:
+        # Match the email case-insensitively, so "Jane@Example.com" can log in
+        # to the account registered as "jane@example.com".
+        account = User.objects.filter(email__iexact=email).first()
+        if account is not None and account.email != email:
+            user = authenticate(request, username=account.email, password=password)
+
     if user is None:
         return Response(
             {"message": "Invalid email or password"},

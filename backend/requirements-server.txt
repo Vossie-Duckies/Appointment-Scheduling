@@ -1,0 +1,5 @@
+# Everything the EC2 server needs (see DEPLOY.md): the API, its tests, and
+# gunicorn, which runs Django behind nginx.
+#   pip install -r requirements-server.txt
+-r requirements-test.txt
+gunicorn>=23.0

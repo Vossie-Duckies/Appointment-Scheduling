@@ -1,2 +1,16 @@
+# secrets
 .env
+*pem
 
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.sqlite3
+.hypothesis/
+staticfiles/
+
+# deploy archives and test leftovers
+*.tgz
+cookies.txt

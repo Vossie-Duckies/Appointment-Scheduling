@@ -1,6 +1,7 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
+from django.test import override_settings, tag
 from hypothesis import given, strategies as st
 
 from appointment_backend.notifications.strategies import (
@@ -9,6 +10,7 @@ from appointment_backend.notifications.strategies import (
 )
 
 
+@tag("unit")
 class TestInAppNotificationStrategy(TestCase):
 
     @patch("appointment_backend.notifications.strategies.Notification.objects.create")
@@ -30,27 +32,35 @@ class TestInAppNotificationStrategy(TestCase):
         )
 
 
+@tag("unit")
 class TestEmailNotificationStrategy(TestCase):
 
+    # Changed with real email (notifications/emails.py): the message is emailed
+    # with a greeting and a "WaitLess:" subject, once the change is saved.
     @given(message=st.text())
     def test_email_handles_random_messages(self, message):
 
         user = Mock()
         user.email = "test@example.com"
+        user.first_name = "Lerato"
 
         appointment = Mock()
 
         strategy = EmailNotificationStrategy()
 
-        with patch(
-            "appointment_backend.notifications.strategies.send_mail"
-        ) as mock_send_mail:
+        with override_settings(EMAIL_IN_BACKGROUND=True, EMAIL_NOTIFICATIONS=True), patch(
+            # No database here, so run the "once it's saved" step straight away.
+            "appointment_backend.notifications.emails.transaction.on_commit", side_effect=lambda send: send()
+        ), patch(
+            "appointment_backend.notifications.emails.threading.Thread"
+        ) as mock_thread:
 
             strategy.send(user, appointment, message)
 
-            mock_send_mail.assert_called_once_with(
-                subject="Appointment Notification",
-                message=message,
-                from_email=None,
-                recipient_list=["test@example.com"],
-            )
+            mock_thread.assert_called_once()
+            address, subject, body = mock_thread.call_args.kwargs["args"]
+            self.assertEqual(address, "test@example.com")
+            self.assertEqual(subject, "WaitLess: Message about your appointment")
+            self.assertIn(message, body)
+            self.assertTrue(body.startswith("Hi Lerato,"))
+            mock_thread.return_value.start.assert_called_once()

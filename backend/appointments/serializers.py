@@ -3,6 +3,7 @@ from .models import Appointment, Doctor_slot
 
 
 class DoctorSlotSerializer(serializers.ModelSerializer):
+    doctor_id = serializers.ReadOnlyField()
     doctor_first_name = serializers.CharField(
         source="doctor.user.first_name",
         read_only=True
@@ -16,6 +17,7 @@ class DoctorSlotSerializer(serializers.ModelSerializer):
         model = Doctor_slot
         fields = [
             "slot_id",
+            "doctor_id",
             "doctor_first_name",
             "doctor_last_name",
             "slot_date",

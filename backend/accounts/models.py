@@ -71,4 +71,14 @@ class Doctor(models.Model):
 
 class Administrator(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
+
+
+class ProfilePhoto(models.Model):
+    # The optional photo on the Profile tab: a JPEG of at most 512 x 512 pixels
+    # (about 50 KB), made by accounts/photos.py. Kept in the database rather
+    # than as a public file, so it is only sent to its logged-in owner, and it
+    # is deleted with the account.
+    user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True, related_name="profile_photo")
+    image = models.BinaryField()
+    updated_at = models.DateTimeField(auto_now=True)
     

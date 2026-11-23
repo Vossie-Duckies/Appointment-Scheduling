@@ -1,44 +1,46 @@
 import { Text, View, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
+
+
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 200,
-    paddingHorizontal: 100,
-    gap: 340
-  },
-  image: {
-    marginLeft: 50
-  },
-  text: {
-    fontWeight: "bold",
-    fontSize: 19,
-    width: 325,
-    marginLeft: -20
-  },
-  confirmationText: {
-    alignContent: "center",
+    flex: 1,
+    alignItems: "center",
     justifyContent: "center",
-    gap: 4
+    padding: 24,
+    gap: 12,
+    backgroundColor: "#ffffff"
+  },
+  title: {
+    fontWeight: "bold",
+    fontSize: 22,
+    textAlign: "center"
+  },
+  detail: {
+    color: "#555555",
+    fontSize: 15,
+    textAlign: "center"
   },
   buttonText: {
-    color: "white"
+    color: "white",
+    fontWeight: "bold"
   },
   nextButton: {
     backgroundColor: "#d00000",
-    borderRadius: 4,
+    borderRadius: 10,
     height: 50,
-    alignContent: "center",
-    justifyContent: "center",
-    paddingHorizontal: 104,
     width: 250,
-    marginLeft: -45
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 32
   }
 });
 
 export default function AppointmentConfirmed() {
   const router = useRouter();
+  const { doctorName, date, time } = useLocalSearchParams<{ doctorName?: string; date?: string; time?: string }>();
 
   const handleNextPressed = () => {
     router.replace("/pages/tabs");
@@ -46,11 +48,11 @@ export default function AppointmentConfirmed() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.confirmationText}>
-        <Ionicons name="checkmark-circle-outline" color="#7ed957" size={70} style={styles.image} />
-        <Text style={styles.text}>Appointment Confirmed</Text>
-      </View>
-      <TouchableOpacity style={styles.nextButton} onPress={() => handleNextPressed()}>
+      <Ionicons name="checkmark-circle-outline" color="#2E9E5B" size={80} />
+      <Text style={styles.title}>Appointment Confirmed</Text>
+      {doctorName ? <Text style={styles.detail}>{doctorName}</Text> : null}
+      {date ? <Text style={styles.detail}>{date}{time ? ` | ${time}` : ""}</Text> : null}
+      <TouchableOpacity style={styles.nextButton} onPress={handleNextPressed} accessibilityRole="button">
         <Text style={styles.buttonText}>Next</Text>
       </TouchableOpacity>
     </View >
